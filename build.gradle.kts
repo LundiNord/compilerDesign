@@ -1,6 +1,7 @@
 plugins {
     id("java")
     application
+    id("org.sonarqube") version "6.0.1.5171"
 }
 
 group = "edu.kit.kastel.logic"
@@ -27,4 +28,12 @@ java {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+sonar {
+  properties {
+    property("sonar.projectKey", "LundiNord_compilerDesign")
+    property("sonar.organization", "lundinord")
+    property("sonar.host.url", "https://sonarcloud.io")
+  }
 }

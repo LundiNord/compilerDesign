@@ -30,6 +30,9 @@ public class CodeGenerator {
         for (IrGraph graph : program) {
             AasmRegisterAllocator allocator = new AasmRegisterAllocator();
             Map<Node, Register> registers = allocator.allocateRegisters(graph);
+
+            
+
             builder.append("function ")
                 .append(graph.name())
                 .append(" {\n");

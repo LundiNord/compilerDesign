@@ -1,6 +1,7 @@
 package edu.kit.kastel.vads.compiler;
 
 import edu.kit.kastel.vads.compiler.backend.aasm.CodeGenerator;
+import edu.kit.kastel.vads.compiler.backend.custom.AssemblyGenerator;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation;
 import edu.kit.kastel.vads.compiler.ir.optimize.LocalValueNumbering;
@@ -13,7 +14,9 @@ import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree;
 import edu.kit.kastel.vads.compiler.semantic.SemanticAnalysis;
 import edu.kit.kastel.vads.compiler.semantic.SemanticException;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -42,8 +45,12 @@ public class Main {
         }
 
         // TODO: generate assembly and invoke gcc instead of generating abstract assembly
-        String s = new CodeGenerator().generateCode(graphs);
-        Files.writeString(output, s);
+        //String s = new CodeGenerator().generateCode(graphs);
+        //Files.writeString(output, s);
+
+        String s = new AssemblyGenerator().generateCode(graphs);
+        Files.writeString(Path.of(output + ".s"), s);
+        runGcc(output + ".s", String.valueOf(output));
     }
 
     private static ProgramTree lexAndParse(Path input) throws IOException {
@@ -58,4 +65,24 @@ public class Main {
             throw new AssertionError("unreachable");
         }
     }
+
+    private static void runGcc (String inputFile, String outputFile) {
+        ProcessBuilder processBuilder = new ProcessBuilder();
+        processBuilder.command("bash", "-c", "gcc " + inputFile  + " -o " + outputFile);
+        processBuilder.redirectErrorStream(true);
+        Process process;
+        StringBuilder output = new StringBuilder();
+        try {
+            process = processBuilder.start();
+            BufferedReader buf = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String temp;
+            while ((temp = buf.readLine()) != null) {
+                output.append(temp).append("\n");
+            }
+        } catch (java.io.IOException error) {
+            System.err.println("gcc failed with: " + error);
+        }
+        System.out.println(output);
+    }
+
 }
