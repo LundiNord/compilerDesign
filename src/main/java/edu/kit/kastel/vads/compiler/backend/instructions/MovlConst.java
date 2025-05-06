@@ -13,6 +13,6 @@ public class MovlConst extends Movel {
 
     @Override
     public String toString() {
-        return String.format("movl $0x%d, %s", value, destination);
+        return String.format("movl $%d, %s", value, destination);
     }
 }

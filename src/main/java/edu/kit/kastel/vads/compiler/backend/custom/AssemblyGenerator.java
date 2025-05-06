@@ -1,24 +1,19 @@
 package edu.kit.kastel.vads.compiler.backend.custom;
 
-import edu.kit.kastel.vads.compiler.backend.aasm.AasmRegisterAllocator;
-import edu.kit.kastel.vads.compiler.backend.aasm.CodeGenerator;
-import edu.kit.kastel.vads.compiler.backend.instructions.Addl;
-import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
-import edu.kit.kastel.vads.compiler.backend.instructions.Movel;
-import edu.kit.kastel.vads.compiler.backend.instructions.MovlConst;
+import edu.kit.kastel.vads.compiler.backend.instructions.*;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.node.*;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
-import static edu.kit.kastel.vads.compiler.ir.util.NodeSupport.predecessorSkipProj;
 
 public class AssemblyGenerator {
 
-    private ArrayList<AsInstruction> assemblyCode;
+    private final ArrayList<AsInstruction> assemblyCode;
     private static final String template = """
             .global main
             .global _main
@@ -34,7 +29,7 @@ public class AssemblyGenerator {
 
             """;
 
-    private int nextRegister = 8;
+    private int nextRegister = 8;   //ToDo: implement register allocation
 
     public AssemblyGenerator() {
         assemblyCode = new ArrayList<AsInstruction>();
@@ -42,7 +37,6 @@ public class AssemblyGenerator {
 
     public String generateCode(List<IrGraph> programs) {
         IrGraph program = programs.getFirst();
-        //assemblyCode.append(template);
 
         System.out.println("-----------------");
         System.out.print(print(program));
@@ -61,16 +55,50 @@ public class AssemblyGenerator {
 
     @Nullable
     private Register maxMunch(Node node) {
-
         switch (node) {
 
+            case ModNode mod -> {
+                Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
+                Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
+                Register succ1 = maxMunch(successor1);
+                Register succ2 = maxMunch(successor2);
+                Register dest = new InfiniteRegister("%edx", false);
+                Register dividend = new InfiniteRegister("%eax", false); //dividend
+                assemblyCode.add(new Movel(succ1, dividend));
+                assert succ2 != null;
+                assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
+                assemblyCode.add(new Mod(succ2));
+                return dest;
+            }
+            case DivNode div -> {
+                Node successor1 = div.predecessors().get(0);    //oberer -> dividend
+                Node successor2 = div.predecessors().get(1);    //unterer -> divisor
+                Register succ1 = maxMunch(successor1);
+                Register succ2 = maxMunch(successor2);
+                Register dest = new InfiniteRegister("%eax", false);    //dividend
+                assemblyCode.add(new Movel(succ1, dest));
+                assert succ2 != null;
+                assemblyCode.add(new Div(succ2));
+                return dest;
+            }
             case ConstIntNode constIntNode -> {
                 Register dest = getFreshRegister();
                 assemblyCode.add(new MovlConst(constIntNode.value(), dest));
-                //assemblyCode.append("MOVL ").append("$0x").append(constIntNode.value()).append(", ").append(dest).append("\n");
                 return dest;
             }
-
+            case SubNode sub -> {
+                Node successor1 = sub.predecessors().get(0);
+                Node successor2 = sub.predecessors().get(1);
+                Register succ1 = maxMunch(successor1);
+                Register succ2 = maxMunch(successor2);
+                Register dest = getFreshRegister();
+                //move succ1 into fresh dest
+                //add succ2 to dest
+                assemblyCode.add(new Movel(succ1, dest));
+                assert succ2 != null;
+                assemblyCode.add(new Subl(succ2, dest));
+                return dest;
+            }
             case AddNode add -> {
                 Node successor1 = add.predecessors().get(0);
                 Node successor2 = add.predecessors().get(1);
@@ -82,26 +110,30 @@ public class AssemblyGenerator {
                 assemblyCode.add(new Movel(succ1, dest));
                 assert succ2 != null;
                 assemblyCode.add(new Addl(succ2, dest));
-                //assemblyCode.append("MOVL ").append(succ1).append(", ").append(dest).append("\n");
-                //assemblyCode.append("ADDL ").append(succ2).append(", ").append(dest).append("\n");
                 return dest;
             }
             case ReturnNode returnNode -> {
                 Register succ = null;
                 for (Node predecessor : returnNode.predecessors()) {
-                    if (predecessor.getClass() == ProjNode.class) {     //get rid of project node
+                    if (predecessor.getClass() == ProjNode.class && ((ProjNode) predecessor).info().equals("SIDE_EFFECT")) {     //get rid of project node
                         continue;
                     }
                     succ = maxMunch(predecessor);
                 }
+                assert succ != null;
                 //succ = succ.replace("d", "");
                 //return value should be in %rax
-
                 assemblyCode.add(new Movel(succ, new InfiniteRegister("%eax", false)));
-                //assemblyCode.append("MOVL ").append(succ).append(", ").append("%eax").append("\n");
                 return null;
             }
-            case Block _, ProjNode _, StartNode _ -> {
+            case ProjNode projNode -> {
+                if (projNode.info().equals("RESULT")) {
+                    return maxMunch(projNode.predecessors().getFirst());
+                } else {
+                    return null;
+                }
+            }
+            case Block _, StartNode _ -> {
                 // do nothing, skip line break
                 return null;
             }
