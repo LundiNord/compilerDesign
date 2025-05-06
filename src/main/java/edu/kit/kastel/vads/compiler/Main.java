@@ -82,7 +82,9 @@ public class Main {
         } catch (java.io.IOException error) {
             System.err.println("gcc failed with: " + error);
         }
+        System.out.println("gcc output:");
         System.out.println(output);
+        System.out.println("-----------------");
     }
 
 }
