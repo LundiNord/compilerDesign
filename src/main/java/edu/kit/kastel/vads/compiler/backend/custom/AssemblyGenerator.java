@@ -2,21 +2,23 @@ package edu.kit.kastel.vads.compiler.backend.custom;
 
 import edu.kit.kastel.vads.compiler.backend.aasm.AasmRegisterAllocator;
 import edu.kit.kastel.vads.compiler.backend.aasm.CodeGenerator;
+import edu.kit.kastel.vads.compiler.backend.instructions.Addl;
+import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
+import edu.kit.kastel.vads.compiler.backend.instructions.Movel;
+import edu.kit.kastel.vads.compiler.backend.instructions.MovlConst;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.node.*;
+import org.jspecify.annotations.Nullable;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
 import static edu.kit.kastel.vads.compiler.ir.util.NodeSupport.predecessorSkipProj;
 
 public class AssemblyGenerator {
 
-    private StringBuilder assemblyCode;
+    private ArrayList<AsInstruction> assemblyCode;
     private static final String template = """
             .global main
             .global _main
@@ -35,13 +37,12 @@ public class AssemblyGenerator {
     private int nextRegister = 8;
 
     public AssemblyGenerator() {
-        assemblyCode = new StringBuilder();
+        assemblyCode = new ArrayList<AsInstruction>();
     }
 
     public String generateCode(List<IrGraph> programs) {
         IrGraph program = programs.getFirst();
-        assemblyCode = new StringBuilder();
-        assemblyCode.append(template);
+        //assemblyCode.append(template);
 
         System.out.println("-----------------");
         System.out.print(print(program));
@@ -52,53 +53,65 @@ public class AssemblyGenerator {
         Node returnNode = endNode.predecessors().getFirst();
         maxMunch(returnNode);
 
-        return assemblyCode.toString();
+        return assemblyCode.stream()
+                .map(AsInstruction::toString)
+                .reduce(template, (acc, instruction) -> acc + instruction + "\n");
     }
 
 
-    private String maxMunch(Node node) {
+    @Nullable
+    private Register maxMunch(Node node) {
 
         switch (node) {
 
             case ConstIntNode constIntNode -> {
-                String dest = getFreshRegister() + "d";
-                assemblyCode.append("MOVL ").append("$0x").append(constIntNode.value()).append(", ").append(dest).append("\n");
+                Register dest = getFreshRegister();
+                assemblyCode.add(new MovlConst(constIntNode.value(), dest));
+                //assemblyCode.append("MOVL ").append("$0x").append(constIntNode.value()).append(", ").append(dest).append("\n");
                 return dest;
             }
 
             case AddNode add -> {
                 Node successor1 = add.predecessors().get(0);
                 Node successor2 = add.predecessors().get(1);
-                String succ1 = maxMunch(successor1);
-                String succ2 = maxMunch(successor2);
-                String dest = getFreshRegister() + "d";
+                Register succ1 = maxMunch(successor1);
+                Register succ2 = maxMunch(successor2);
+                Register dest = getFreshRegister();
                 //move succ1 into fresh dest
                 //add succ2 to dest
-                assemblyCode.append("MOVL ").append(succ1).append(", ").append(dest).append("\n");
-                assemblyCode.append("ADDL ").append(succ2).append(", ").append(dest).append("\n");
+                assemblyCode.add(new Movel(succ1, dest));
+                assert succ2 != null;
+                assemblyCode.add(new Addl(succ2, dest));
+                //assemblyCode.append("MOVL ").append(succ1).append(", ").append(dest).append("\n");
+                //assemblyCode.append("ADDL ").append(succ2).append(", ").append(dest).append("\n");
                 return dest;
             }
             case ReturnNode returnNode -> {
-                String succ = "";
+                Register succ = null;
                 for (Node predecessor : returnNode.predecessors()) {
-                    succ = succ + maxMunch(predecessor);
+                    if (predecessor.getClass() == ProjNode.class) {     //get rid of project node
+                        continue;
+                    }
+                    succ = maxMunch(predecessor);
                 }
                 //succ = succ.replace("d", "");
                 //return value should be in %rax
-                assemblyCode.append("MOVL ").append(succ).append(", ").append("%eax").append("\n");
-                return "";
+
+                assemblyCode.add(new Movel(succ, new InfiniteRegister("%eax", false)));
+                //assemblyCode.append("MOVL ").append(succ).append(", ").append("%eax").append("\n");
+                return null;
             }
             case Block _, ProjNode _, StartNode _ -> {
                 // do nothing, skip line break
-                return "";
+                return null;
             }
             default -> throw new IllegalStateException("Unexpected value: " + node);
         }
     }
 
-    private String getFreshRegister() {
+    private Register getFreshRegister() {
         String nextRegisterString = "%r" + nextRegister;
         nextRegister++;
-        return nextRegisterString;
+        return new InfiniteRegister(nextRegisterString, true);
     }
 }
