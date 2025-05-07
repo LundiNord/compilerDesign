@@ -10,7 +10,7 @@ public final class ProjNode extends Node {
     }
 
     @Override
-    public String info() {
+    protected String info() {
         return this.projectionInfo.toString();
     }
 

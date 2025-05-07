@@ -23,30 +23,51 @@ class VariableStatusAnalysis implements NoOpVisitor<Namespace<VariableStatusAnal
         switch (assignmentTree.lValue()) {
             case LValueIdentTree(var name) -> {
                 VariableStatus status = data.get(name);
-                checkInitialized(name, status);
+                checkDeclared(name, status);
+                if (status != VariableStatus.INITIALIZED) {
+                    // only update when needed, reassignment is totally fine
+                    updateStatus(data, VariableStatus.INITIALIZED, name);
+                }
             }
         }
         return NoOpVisitor.super.visit(assignmentTree, data);
     }
 
-    private static void checkInitialized(NameTree name, @Nullable VariableStatus status) {
+    private static void checkDeclared(NameTree name, @Nullable VariableStatus status) {
         if (status == null) {
             throw new SemanticException("Variable " + name + " must be declared before assignment");
         }
     }
 
+    private static void checkInitialized(NameTree name, @Nullable VariableStatus status) {
+        if (status == null || status == VariableStatus.DECLARED) {
+            throw new SemanticException("Variable " + name + " must be initialized before use");
+        }
+    }
+
+    private static void checkUndeclared(NameTree name, @Nullable VariableStatus status) {
+        if (status != null) {
+            throw new SemanticException("Variable " + name + " is already declared");
+        }
+    }
+
     @Override
     public Unit visit(DeclarationTree declarationTree, Namespace<VariableStatus> data) {
+        checkUndeclared(declarationTree.name(), data.get(declarationTree.name()));
         VariableStatus status = declarationTree.initializer() == null
             ? VariableStatus.DECLARED
             : VariableStatus.INITIALIZED;
-        data.put(declarationTree.name(), status, (existing, replacement) -> {
+        updateStatus(data, status, declarationTree.name());
+        return NoOpVisitor.super.visit(declarationTree, data);
+    }
+
+    private static void updateStatus(Namespace<VariableStatus> data, VariableStatus status, NameTree name) {
+        data.put(name, status, (existing, replacement) -> {
             if (existing.ordinal() >= replacement.ordinal()) {
                 throw new SemanticException("variable is already " + existing + ". Cannot be " + replacement + " here.");
             }
             return replacement;
         });
-        return NoOpVisitor.super.visit(declarationTree, data);
     }
 
     @Override
