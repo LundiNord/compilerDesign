@@ -1,14 +1,41 @@
 package edu.kit.kastel.vads.compiler.backend.instructions;
 
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
+import org.jspecify.annotations.Nullable;
 
-public interface AsInstruction {
+import java.util.HashSet;
+import java.util.Set;
+
+public abstract class AsInstruction {
+
+    private final Set<Register> liveIn;       //better performance with List?
+
+    protected AsInstruction() {
+        this.liveIn = new HashSet<>();
+    }
+
+    public abstract String toString();
+    public abstract Register getDestination();
+    @Nullable
+    public abstract Register getSource();
+
+    public void addLiveIn(Register reg) {
+        liveIn.add(reg);
+    }
+    public Set<Register> getLiveIn() {
+        return liveIn;
+    }
+
+}
+
+
+
+
+
+
 
 //    @Nullable
 //    private Node ssaNode;
-
-    String toString();
-
 //    @Nullable
 //    public Node getSsaNode() {
 //        return ssaNode;
@@ -16,6 +43,3 @@ public interface AsInstruction {
 //    public void setSsaNode(Node ssaNode) {
 //        this.ssaNode = ssaNode;
 //    }
-    Register getDestination();
-
-}

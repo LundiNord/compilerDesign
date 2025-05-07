@@ -1,6 +1,5 @@
 package edu.kit.kastel.vads.compiler;
 
-import edu.kit.kastel.vads.compiler.backend.aasm.CodeGenerator;
 import edu.kit.kastel.vads.compiler.backend.custom.AssemblyGenerator;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation;
@@ -43,10 +42,6 @@ public class Main {
             SsaTranslation translation = new SsaTranslation(function, new LocalValueNumbering());
             graphs.add(translation.translate());
         }
-
-        // TODO: generate assembly and invoke gcc instead of generating abstract assembly
-        //String s = new CodeGenerator().generateCode(graphs);
-        //Files.writeString(output, s);
 
         String s = new AssemblyGenerator().generateCode(graphs);
         Files.writeString(Path.of(output + ".s"), s);

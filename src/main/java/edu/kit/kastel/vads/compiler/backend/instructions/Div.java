@@ -1,9 +1,10 @@
 package edu.kit.kastel.vads.compiler.backend.instructions;
 
 import edu.kit.kastel.vads.compiler.backend.custom.InfiniteRegister;
+import edu.kit.kastel.vads.compiler.backend.custom.StandardRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
-public class Div implements AsInstruction {
+public class Div extends AsInstruction {
 
     private final Register divisor;
 
@@ -17,6 +18,9 @@ public class Div implements AsInstruction {
     }
 
     public Register getDestination() {
-        return new InfiniteRegister("%eax", false);
+        return new StandardRegister("%eax", false);
+    }
+    public Register getSource() {
+        return divisor;
     }
 }

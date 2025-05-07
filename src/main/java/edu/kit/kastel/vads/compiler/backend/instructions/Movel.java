@@ -3,7 +3,7 @@ package edu.kit.kastel.vads.compiler.backend.instructions;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import org.jspecify.annotations.Nullable;
 
-public class Movel implements AsInstruction {
+public class Movel extends AsInstruction {
 
     @Nullable
     private final Register source;
@@ -21,5 +21,9 @@ public class Movel implements AsInstruction {
     }
     public Register getDestination() {
         return destination;
+    }
+    @Nullable
+    public Register getSource() {
+        return source;
     }
 }

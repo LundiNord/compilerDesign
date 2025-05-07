@@ -1,7 +1,0 @@
-int main () {
-
-int b;
-b = 3 + 4 + 1;
-
-return b;
-}

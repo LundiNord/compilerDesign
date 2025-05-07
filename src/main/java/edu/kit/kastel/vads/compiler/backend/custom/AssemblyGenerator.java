@@ -2,6 +2,7 @@ package edu.kit.kastel.vads.compiler.backend.custom;
 
 import edu.kit.kastel.vads.compiler.backend.instructions.*;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
+import edu.kit.kastel.vads.compiler.backend.regalloc.RegisterAlloc;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.node.*;
 import org.jspecify.annotations.Nullable;
@@ -15,7 +16,7 @@ import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
 
 public class AssemblyGenerator {
 
-    private final ArrayList<AsInstruction> assemblyCode;
+    private List<AsInstruction> assemblyCode;
     private final Set<Node> visited;
     private static final String template = """
             .global main
@@ -31,7 +32,7 @@ public class AssemblyGenerator {
             _main:
 
             """;
-    private int nextRegister = 8;   //ToDo: implement register allocation
+    private int nextRegister = 1;
 
     public AssemblyGenerator() {
         assemblyCode = new ArrayList<AsInstruction>();
@@ -50,6 +51,7 @@ public class AssemblyGenerator {
         Node returnNode = endNode.predecessors().getFirst();
         maxMunch(returnNode);
 
+        assemblyCode = new RegisterAlloc(assemblyCode).doRegAlloc();
 
         String result = assemblyCode.stream()
                 .map(AsInstruction::toString)
@@ -66,13 +68,14 @@ public class AssemblyGenerator {
             return node.getInstruction().getDestination();
         }
         switch (node) {
+            //ToDo: implement multiplication
             case ModNode mod -> {
                 Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
                 Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
                 Register succ1 = maxMunch(successor1);
                 Register succ2 = maxMunch(successor2);
-                Register dest = new InfiniteRegister("%edx", false);
-                Register dividend = new InfiniteRegister("%eax", false); //dividend
+                Register dest = new StandardRegister("%edx", false);
+                Register dividend = new StandardRegister("%eax", false); //dividend
                 assemblyCode.add(new Movel(succ1, dividend));
                 assert succ2 != null;
                 assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
@@ -84,10 +87,10 @@ public class AssemblyGenerator {
                 Node successor2 = div.predecessors().get(1);    //unterer -> divisor
                 Register succ1 = maxMunch(successor1);
                 Register succ2 = maxMunch(successor2);
-                Register dest = new InfiniteRegister("%eax", false);    //dividend
+                Register dest = new StandardRegister("%eax", false);    //dividend
                 assemblyCode.add(new Movel(succ1, dest));
                 assert succ2 != null;
-                assemblyCode.add(new MovlConst(0, new InfiniteRegister("%edx", false)));   //replace with xor for performance?
+                assemblyCode.add(new MovlConst(0, new StandardRegister("%edx", false)));   //replace with xor for performance?
                 assemblyCode.add(new Div(succ2));
                 return dest;
             }
@@ -139,7 +142,7 @@ public class AssemblyGenerator {
                 assert succ != null;
                 //succ = succ.replace("d", "");
                 //return value should be in %rax
-                assemblyCode.add(new Movel(succ, new InfiniteRegister("%eax", false)));
+                assemblyCode.add(new Movel(succ, new StandardRegister("%eax", false)));
                 return null;
             }
             case ProjNode projNode -> {
@@ -158,9 +161,7 @@ public class AssemblyGenerator {
     }
 
     private Register getFreshRegister() {
-        String nextRegisterString = "%r" + nextRegister;
-        nextRegister++;
-        return new InfiniteRegister(nextRegisterString, true);
+        return new InfiniteRegister(nextRegister++);
     }
 
 }

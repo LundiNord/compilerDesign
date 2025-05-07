@@ -2,7 +2,7 @@ package edu.kit.kastel.vads.compiler.backend.instructions;
 
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
-public class Addl implements AsInstruction {
+public class Addl extends AsInstruction {
 
     private final Register source;
     protected final Register destination;
@@ -19,5 +19,8 @@ public class Addl implements AsInstruction {
 
     public Register getDestination() {
         return destination;
+    }
+    public Register getSource() {
+        return source;
     }
 }
