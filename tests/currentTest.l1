@@ -1,8 +1,6 @@
 int main() {
-  int a = 1;
-  int b = 1;
-  int c = a + b;
-  int d = b + c;
-  int e = c + d;
-  return e;
+  int x = 0xbeef;
+  int y = 21;
+  y *= (-12345 / (-12345) / 1) + (x / x);
+  return y - 1;
 }

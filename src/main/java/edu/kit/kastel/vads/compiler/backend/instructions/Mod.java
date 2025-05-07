@@ -1,6 +1,5 @@
 package edu.kit.kastel.vads.compiler.backend.instructions;
 
-import edu.kit.kastel.vads.compiler.backend.custom.InfiniteRegister;
 import edu.kit.kastel.vads.compiler.backend.custom.StandardRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 

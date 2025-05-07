@@ -65,21 +65,23 @@ public class AssemblyGenerator {
         boolean alreadyVisited = !visited.add(node);
         if (alreadyVisited) {
             assert node.getInstruction() != null;
-            return node.getInstruction().getDestination();
+            return node.getInstruction().getDestination();  //Could be changes to only store dest register
         }
         switch (node) {
             //ToDo: implement multiplication
             case ModNode mod -> {
                 Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
                 Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
-                Register succ1 = maxMunch(successor1);
+                Register succ1 = maxMunch(successor1);      //ToDo: change maxMunch to give in desired dest register
                 Register succ2 = maxMunch(successor2);
                 Register dest = new StandardRegister("%edx", false);
                 Register dividend = new StandardRegister("%eax", false); //dividend
                 assemblyCode.add(new Movel(succ1, dividend));
                 assert succ2 != null;
                 assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
-                assemblyCode.add(new Mod(succ2));
+                Mod modl = new Mod(succ2);
+                node.setInstruction(modl);
+                assemblyCode.add(modl);
                 return dest;
             }
             case DivNode div -> {
@@ -88,10 +90,12 @@ public class AssemblyGenerator {
                 Register succ1 = maxMunch(successor1);
                 Register succ2 = maxMunch(successor2);
                 Register dest = new StandardRegister("%eax", false);    //dividend
-                assemblyCode.add(new Movel(succ1, dest));
+                assemblyCode.add(new Movel(succ1, dest));       //ToDo: change maxMunch to give in desired dest register
                 assert succ2 != null;
                 assemblyCode.add(new MovlConst(0, new StandardRegister("%edx", false)));   //replace with xor for performance?
-                assemblyCode.add(new Div(succ2));
+                Div divl = new Div(succ2);
+                node.setInstruction(divl);
+                assemblyCode.add(divl);
                 return dest;
             }
             case ConstIntNode constIntNode -> {
@@ -112,7 +116,9 @@ public class AssemblyGenerator {
                 assemblyCode.add(new Movel(succ1, dest));
                 assert succ1 != null;
                 assert succ2 != null;
-                assemblyCode.add(new Subl(succ2, dest));
+                Subl subl = new Subl(succ2, dest);
+                node.setInstruction(subl);
+                assemblyCode.add(subl);
                 return dest;
             }
             case AddNode add -> {
@@ -129,6 +135,19 @@ public class AssemblyGenerator {
                 Addl addl = new Addl(succ2, dest);
                 node.setInstruction(addl);
                 assemblyCode.add(addl);
+                return dest;
+            }
+            case MulNode mul -> {
+                Node successor1 = mul.predecessors().get(0);
+                Node successor2 = mul.predecessors().get(1);
+                Register succ1 = maxMunch(successor1);  //ToDo: change maxMunch to give in desired dest register
+                Register succ2 = maxMunch(successor2);
+                Register dest = new StandardRegister("%eax", false);    //dividend
+                assemblyCode.add(new Movel(succ1, dest));
+                assert succ2 != null;
+                Mul mull = new Mul(succ2);
+                node.setInstruction(mull);
+                assemblyCode.add(mull);
                 return dest;
             }
             case ReturnNode returnNode -> {

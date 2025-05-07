@@ -3,23 +3,23 @@ package edu.kit.kastel.vads.compiler.backend.instructions;
 import edu.kit.kastel.vads.compiler.backend.custom.StandardRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
-public class Div extends AsInstruction {
+public class Mul extends AsInstruction {
 
-    private final Register divisor;
+    private final Register op1;
 
-    public Div(Register divisor) {
-        this.divisor = divisor;
+    public Mul(Register op1) {
+        this.op1 = op1;
     }
 
     @Override
     public String toString() {
-        return String.format("div %s", divisor.toString());
+        return String.format("mul %s", op1.toString());
     }
 
     public Register getDestination() {
         return new StandardRegister("%eax", false);
     }
     public Register getSource() {
-        return divisor;
+        return op1;
     }
 }
