@@ -68,7 +68,6 @@ public class AssemblyGenerator {
             return node.getInstruction().getDestination();  //Could be changes to only store dest register
         }
         switch (node) {
-            //ToDo: implement multiplication
             case ModNode mod -> {
                 Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
                 Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
@@ -92,6 +91,19 @@ public class AssemblyGenerator {
                 Register dest = new StandardRegister("%eax", false);    //dividend
                 assemblyCode.add(new Movel(succ1, dest));       //ToDo: change maxMunch to give in desired dest register
                 assert succ2 != null;
+
+                // Add runtime check for INT_MIN / -1
+                Label skipSpecialCase = new Label("skip_special_case_" + nextRegister++);
+                // Check if divisor is -1
+                assemblyCode.add(new CmplConst(-1, succ2));
+                assemblyCode.add(new Jne(skipSpecialCase));
+                // Check if dividend is INT_MIN
+                assemblyCode.add(new CmplConst(Integer.MIN_VALUE, dest));
+                assemblyCode.add(new Jne(skipSpecialCase));
+                // Throw exception by dividing by zero
+                assemblyCode.add(new MovlConst(0, succ2));
+
+                assemblyCode.add(skipSpecialCase);
                 assemblyCode.add(new MovlConst(0, new StandardRegister("%edx", false)));   //replace with xor for performance?
                 Div divl = new Div(succ2);
                 node.setInstruction(divl);

@@ -12,6 +12,9 @@ public class InterferenceGraph {
     }
 
     public void addVertex(Register label) {
+        if (label == null){
+            throw new IllegalArgumentException("Label cannot be null");
+        }
         adjacencyList.putIfAbsent(new InterferenceNode(label), new ArrayList<>());
     }
 //    public void removeVertex(Register label) {

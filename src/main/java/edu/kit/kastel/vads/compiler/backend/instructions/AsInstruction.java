@@ -15,6 +15,7 @@ public abstract class AsInstruction {
     }
 
     public abstract String toString();
+    @Nullable
     public abstract Register getDestination();
     @Nullable
     public abstract Register getSource();

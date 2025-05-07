@@ -81,7 +81,7 @@ public class RegisterAlloc {
         for (int i = 0; i < assemblyCode.size(); i++) {
             Register src = assemblyCode.get(i).getSource();
             Register dest = assemblyCode.get(i).getDestination();
-            if (dest instanceof StandardRegister) {
+            if (dest == null || dest instanceof StandardRegister) {
                 continue;
             }
             if (assemblyCode.get(i).getClass() == MovlConst.class) {

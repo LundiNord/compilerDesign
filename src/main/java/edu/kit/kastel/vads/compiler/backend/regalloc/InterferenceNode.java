@@ -22,6 +22,9 @@ public class InterferenceNode {
             return false;
         }
         if (obj instanceof InterferenceNode interferenceNode) {
+            if (this.reg == null) {
+                return false;
+            }
             return reg.equals(interferenceNode.reg);
         }
         return false;
