@@ -156,6 +156,7 @@ public class RegisterAlloc {
                 if (inf1.getTrueRegister() instanceof StackRegister && inf2.getTrueRegister() instanceof StackRegister) {
                     newAssemblyCode.add(new Movel(instruction.getSource(), temp));
                     instruction.changeSource(temp);
+                    newAssemblyCode.add(instruction);
                 } else {
                     newAssemblyCode.add(instruction);
                 }

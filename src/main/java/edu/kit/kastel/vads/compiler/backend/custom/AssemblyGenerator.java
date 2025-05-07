@@ -23,14 +23,21 @@ public class AssemblyGenerator {
             .global _main
             .text
             main:
-            call _main
+                call _main
             
-            movq %rax, %rdi
-            movq $0x3C, %rax
-            syscall
+                movq %rax, %rdi
+                movq $0x3C, %rax
+                syscall
             
             _main:
+                pushq %rbp
+                movq %rsp, %rbp
 
+            """;
+    private static final String endTemplate = """
+            movq %rbp, %rsp
+            popq %rbp
+            ret
             """;
     private int nextRegister = 1;
 
@@ -58,7 +65,7 @@ public class AssemblyGenerator {
         String result = assemblyCode.stream()
                 .map(AsInstruction::toString)
                 .reduce(template, (acc, instruction) -> acc + instruction + "\n");
-        return result + "ret\n";
+        return result + endTemplate;
     }
 
 
@@ -184,7 +191,12 @@ public class AssemblyGenerator {
                 Mul mull = new Mul(succ2);
                 node.setInstruction(mull);
                 assemblyCode.add(mull);
-                return dest;
+
+                Register destination = getFreshRegister();
+                assemblyCode.add(new Movel(dest, destination));
+                return destination;
+
+                //return dest;
             }
             case ReturnNode returnNode -> {
                 Register succ = null;

@@ -15,6 +15,6 @@ public class StackRegister implements Register {
 
     @Override
     public String toString() {
-        return offset + "(%esp)";
+        return "-" + offset + "(%rbp)";
     }
 }
