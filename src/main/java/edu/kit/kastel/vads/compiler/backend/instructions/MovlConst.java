@@ -15,4 +15,5 @@ public class MovlConst extends Movel {
     public String toString() {
         return String.format("movl $%d, %s", value, destination);
     }
+
 }

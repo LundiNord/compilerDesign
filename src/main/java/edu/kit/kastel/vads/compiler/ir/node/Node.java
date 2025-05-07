@@ -1,18 +1,22 @@
 package edu.kit.kastel.vads.compiler.ir.node;
 
+import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /// The base class for all nodes.
-public sealed abstract class Node permits BinaryOperationNode, Block, ConstIntNode, Phi, ProjNode, ReturnNode, StartNode {
+public abstract sealed class Node permits BinaryOperationNode, Block, ConstIntNode, Phi, ProjNode, ReturnNode, StartNode {
     private final IrGraph graph;
     private final Block block;
     private final List<Node> predecessors = new ArrayList<>();
     private final DebugInfo debugInfo;
+    @Nullable
+    private AsInstruction instruction;
 
     protected Node(Block block, Node... predecessors) {
         this.graph = block.graph();
@@ -69,5 +73,12 @@ public sealed abstract class Node permits BinaryOperationNode, Block, ConstIntNo
 
     public DebugInfo debugInfo() {
         return debugInfo;
+    }
+
+    public @Nullable AsInstruction getInstruction() {
+        return instruction;
+    }
+    public void setInstruction(@Nullable AsInstruction instruction) {
+        this.instruction = instruction;
     }
 }

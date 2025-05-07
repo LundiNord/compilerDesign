@@ -1,5 +1,6 @@
 package edu.kit.kastel.vads.compiler.backend.instructions;
 
+import edu.kit.kastel.vads.compiler.backend.custom.InfiniteRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
 public class Div implements AsInstruction {
@@ -13,5 +14,9 @@ public class Div implements AsInstruction {
     @Override
     public String toString() {
         return String.format("div %s", divisor.toString());
+    }
+
+    public Register getDestination() {
+        return new InfiniteRegister("%eax", false);
     }
 }

@@ -12,8 +12,8 @@ public class Subl implements AsInstruction {
     /**
      * Creates a new subl instruction.
      * Calculates destination - source
-     * @param source
-     * @param destination
+     * @param source Source register
+     * @param destination Destination register
      */
     public Subl(Register source, Register destination) {
         this.source = source;
@@ -23,5 +23,9 @@ public class Subl implements AsInstruction {
     @Override
     public String toString() {
         return String.format("subl %s, %s", source.toString(), destination.toString());
+    }
+
+    public Register getDestination() {
+        return destination;
     }
 }

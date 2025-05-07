@@ -19,4 +19,7 @@ public class Movel implements AsInstruction {
         assert source != null;
         return String.format("movl %s, %s", source.toString(), destination.toString());
     }
+    public Register getDestination() {
+        return destination;
+    }
 }

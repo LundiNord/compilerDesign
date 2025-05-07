@@ -16,4 +16,8 @@ public class Addl implements AsInstruction {
     public String toString() {
         return String.format("addl %s, %s", source.toString(), destination.toString());
     }
+
+    public Register getDestination() {
+        return destination;
+    }
 }
