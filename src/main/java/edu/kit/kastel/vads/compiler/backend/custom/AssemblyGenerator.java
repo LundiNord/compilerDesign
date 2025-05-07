@@ -42,16 +42,18 @@ public class AssemblyGenerator {
     public String generateCode(List<IrGraph> programs) {
         IrGraph program = programs.getFirst();
 
-        System.out.println("-----------------");
-        System.out.print(print(program));
-        System.out.println();
-        System.out.println("-----------------");
+//        System.out.println("-----------------");
+//        System.out.print(print(program));
+//        System.out.println();
+//        System.out.println("-----------------");
 
         Node endNode = program.endBlock();
         Node returnNode = endNode.predecessors().getFirst();
         maxMunch(returnNode);
 
-        assemblyCode = new RegisterAlloc(assemblyCode).doRegAlloc();
+        RegisterAlloc regAlloc = new RegisterAlloc(assemblyCode);
+        assemblyCode = regAlloc.doRegAlloc();
+        assemblyCode = regAlloc.removeMemToMem();
 
         String result = assemblyCode.stream()
                 .map(AsInstruction::toString)
@@ -77,11 +79,28 @@ public class AssemblyGenerator {
                 Register dividend = new StandardRegister("%eax", false); //dividend
                 assemblyCode.add(new Movel(succ1, dividend));
                 assert succ2 != null;
+
+                // Add runtime check for INT_MIN / -1
+                Label skipSpecialCase = new Label("skip_special_case_" + nextRegister++);
+                // Check if divisor is -1
+                assemblyCode.add(new CmplConst(-1, succ2));
+                assemblyCode.add(new Jne(skipSpecialCase));
+                // Check if dividend is INT_MIN
+                assemblyCode.add(new CmplConst(Integer.MIN_VALUE, dividend));
+                assemblyCode.add(new Jne(skipSpecialCase));
+                // Throw exception by dividing by zero
+                assemblyCode.add(new MovlConst(0, succ2));
+
+                assemblyCode.add(skipSpecialCase);
                 assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
                 Mod modl = new Mod(succ2);
                 node.setInstruction(modl);
                 assemblyCode.add(modl);
-                return dest;
+//                return dest;
+
+                Register destination = getFreshRegister();
+                assemblyCode.add(new Movel(dest, destination));
+                return destination;
             }
             case DivNode div -> {
                 Node successor1 = div.predecessors().get(0);    //oberer -> dividend
@@ -108,7 +127,12 @@ public class AssemblyGenerator {
                 Div divl = new Div(succ2);
                 node.setInstruction(divl);
                 assemblyCode.add(divl);
-                return dest;
+
+                Register destination = getFreshRegister();
+                assemblyCode.add(new Movel(dest, destination));
+                return destination;
+
+//                return dest;
             }
             case ConstIntNode constIntNode -> {
                 Register dest = getFreshRegister();
@@ -180,7 +204,7 @@ public class AssemblyGenerator {
                 if (projNode.info().equals("RESULT")) {
                     return maxMunch(projNode.predecessors().getFirst());
                 } else {
-                    return null;
+                    return null;    //ToDo: also calculate side effect
                 }
             }
             case Block _, StartNode _ -> {

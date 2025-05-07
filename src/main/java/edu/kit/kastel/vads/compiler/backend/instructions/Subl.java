@@ -3,11 +3,10 @@ package edu.kit.kastel.vads.compiler.backend.instructions;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
 public class Subl extends AsInstruction {
-
-    private final Register source;
-    protected final Register destination;
-
     //https://stackoverflow.com/questions/36569282/x86-assembly-how-does-the-subl-command-work-in-att-syntax
+
+    private Register source;
+    protected final Register destination;
 
     /**
      * Creates a new subl instruction.
@@ -30,5 +29,8 @@ public class Subl extends AsInstruction {
     }
     public Register getSource() {
         return source;
+    }
+    public void changeSource(Register reg) {
+        source = reg;
     }
 }

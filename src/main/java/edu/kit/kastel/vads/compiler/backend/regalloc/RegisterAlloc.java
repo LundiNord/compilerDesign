@@ -1,6 +1,7 @@
 package edu.kit.kastel.vads.compiler.backend.regalloc;
 
 import edu.kit.kastel.vads.compiler.backend.custom.InfiniteRegister;
+import edu.kit.kastel.vads.compiler.backend.custom.StackRegister;
 import edu.kit.kastel.vads.compiler.backend.custom.StandardRegister;
 import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
 import edu.kit.kastel.vads.compiler.backend.instructions.Movel;
@@ -13,7 +14,7 @@ public class RegisterAlloc {
     private final List<AsInstruction> assemblyCode;
     private final InterferenceGraph interferenceGraph;
     private static final Register[] REGISTERS = {
-           new StandardRegister("%ebx", false),
+//           new StandardRegister("%ebx", false),
            new StandardRegister("%ecx", false),
            new StandardRegister("%esi", false),
            new StandardRegister("%edi", false),
@@ -34,9 +35,20 @@ public class RegisterAlloc {
 
     public List<AsInstruction> doRegAlloc() {
         simpleInterference();
-        interferenceGraph.doColoring();
-        Map<InfiniteRegister, StandardRegister> regSelection  = selectRegisters();
+        int maxColor = interferenceGraph.doColoring();
+        //count occurrences of each register and group by coloring
+        Map<Integer, Integer> occurrences = new HashMap<>();    //Color, n                 //could maybe be done earlier
+        for (int i = 0; i < assemblyCode.size(); i++) {
+            AsInstruction instruction = assemblyCode.get(i);
+            if (instruction.getDestination() != null && instruction.getDestination() instanceof InfiniteRegister infiniteRegister) {
+                occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
+            }       //ToDo: laufzeit von dem hier schlimm?
+            if (instruction.getSource() != null && instruction.getSource() instanceof InfiniteRegister infiniteRegister) {
+                occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
+            }
+        }
         //replace all infinite registers with standard registers
+        Map<InfiniteRegister, Register> regSelection = selectRegisters(occurrences, maxColor);
         for (int i = 0; i < assemblyCode.size(); i++) {
             AsInstruction instruction = assemblyCode.get(i);
             if (instruction.getDestination() != null && instruction.getDestination() instanceof InfiniteRegister infiniteRegister) {
@@ -115,20 +127,43 @@ public class RegisterAlloc {
         }
     }
 
-    private Map<InfiniteRegister, StandardRegister> selectRegisters() {
+    private Map<InfiniteRegister, Register> selectRegisters(Map<Integer, Integer> occurrences, int maxColor) {
         //14 registers available
-        Map<InfiniteRegister, StandardRegister> regSelection = new HashMap<>();
+        Map<InfiniteRegister, Register> regSelection = new HashMap<>();
+        //top occurrences get color, the rest get space on the stack
+        List<Integer> topColors = occurrences.entrySet().stream()
+                .sorted(Map.Entry.<Integer, Integer>comparingByValue().reversed())
+                .map(Map.Entry::getKey).limit(REGISTERS.length).toList();
 
-        for (InterferenceNode node : interferenceGraph.getVertexes()) { //ToDo: use often used registers first
+        for (InterferenceNode node : interferenceGraph.getVertexes()) {
             int color = node.getColor();
-            if (color >= REGISTERS.length) {
-                //ToDo: spill
+            if (topColors.contains(color)) {
+                StandardRegister reg = (StandardRegister) REGISTERS[topColors.indexOf(color)];
+                regSelection.put((InfiniteRegister) node.getReg(), reg);
             } else {
-                StandardRegister reg = (StandardRegister) REGISTERS[color];
+                StackRegister reg = new StackRegister(8 * color);
                 regSelection.put((InfiniteRegister) node.getReg(), reg);
             }
         }
         return regSelection;
+    }
+
+    public List<AsInstruction> removeMemToMem() {
+        List<AsInstruction> newAssemblyCode = new ArrayList<>();
+        StandardRegister temp = new StandardRegister("%ebx", false);
+        for (AsInstruction instruction : assemblyCode) {
+            if (instruction.getSource() instanceof InfiniteRegister inf1 && instruction.getDestination() instanceof InfiniteRegister inf2) {
+                if (inf1.getTrueRegister() instanceof StackRegister && inf2.getTrueRegister() instanceof StackRegister) {
+                    newAssemblyCode.add(new Movel(instruction.getSource(), temp));
+                    instruction.changeSource(temp);
+                } else {
+                    newAssemblyCode.add(instruction);
+                }
+            } else {
+                newAssemblyCode.add(instruction);
+            }
+        }
+        return newAssemblyCode;
     }
 
 }

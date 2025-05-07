@@ -16,4 +16,7 @@ public class MovlConst extends Movel {
         return String.format("movl $%d, %s", value, destination);
     }
 
+    public void changeSource(Register reg) {
+        //Do nothing
+    }
 }

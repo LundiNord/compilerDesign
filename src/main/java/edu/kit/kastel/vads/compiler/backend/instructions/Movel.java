@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 public class Movel extends AsInstruction {
 
     @Nullable
-    private final Register source;
+    private Register source;
     protected final Register destination;
 
     public Movel(@Nullable  Register source, Register destination) {
@@ -25,5 +25,8 @@ public class Movel extends AsInstruction {
     @Nullable
     public Register getSource() {
         return source;
+    }
+    public void changeSource(Register reg) {
+        source = reg;
     }
 }

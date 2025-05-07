@@ -23,7 +23,7 @@ public class InterferenceGraph {
 //        adjacencyList.remove(new InterferenceNode(label));
 //    }
     //Helper method to get the actual node instance from the map
-    private InterferenceNode getNode(Register label) {      //hope this is ok for performance
+    public InterferenceNode getNode(Register label) {      //hope this is ok for performance
         InterferenceNode key = new InterferenceNode(label);
         return Objects.requireNonNull(adjacencyList.keySet().stream()
                 .filter(key::equals)
@@ -33,8 +33,6 @@ public class InterferenceGraph {
     public void addEdge(Register label1, Register label2) {
         InterferenceNode v1 = getNode(label1);
         InterferenceNode v2 =  getNode(label2);
-//        InterferenceNode v1 = new InterferenceNode(label1);
-//        InterferenceNode v2 = new InterferenceNode(label2);
         if (!adjacencyList.get(v1).contains(v2)) {
             adjacencyList.get(v1).add(v2);
         }
@@ -81,7 +79,8 @@ public class InterferenceGraph {
         return viList;
     }
 
-    public void doColoring() {
+    public int doColoring() {
+        int maxColor = 1;
         int n = adjacencyList.size();
         List <InterferenceNode> viList = doMCS();
         //For i ← 1 to n do
@@ -94,13 +93,15 @@ public class InterferenceGraph {
                     usedColors.add(u.getColor());
                 }
             }
-            int color = 1;
+            int color = 1;  //0: uncolored
             while (usedColors.contains(color)) {
                 color++;
+                maxColor = Math.max(maxColor, color);
             }
             //Set col(vi) ← c
             vi.setColor(color);
         }
+        return maxColor;
     }
 
 

@@ -27,6 +27,8 @@ public abstract class AsInstruction {
         return liveIn;
     }
 
+    public abstract void changeSource(Register reg);
+
 }
 
 

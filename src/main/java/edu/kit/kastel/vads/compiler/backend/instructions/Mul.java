@@ -5,7 +5,7 @@ import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
 public class Mul extends AsInstruction {
 
-    private final Register op1;
+    private Register op1;
 
     public Mul(Register op1) {
         this.op1 = op1;
@@ -13,7 +13,7 @@ public class Mul extends AsInstruction {
 
     @Override
     public String toString() {
-        return String.format("mul %s", op1.toString());
+        return String.format("mull %s", op1.toString());
     }
 
     public Register getDestination() {
@@ -21,5 +21,8 @@ public class Mul extends AsInstruction {
     }
     public Register getSource() {
         return op1;
+    }
+    public void changeSource(Register reg) {
+        op1 = reg;
     }
 }

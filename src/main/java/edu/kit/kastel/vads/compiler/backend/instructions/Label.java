@@ -30,4 +30,8 @@ public class Label extends AsInstruction {
     public String getName() {
         return name;
     }
+
+    public void changeSource(Register reg) {
+        throw new UnsupportedOperationException("Cannot change source of CmplConst");
+    }
 }

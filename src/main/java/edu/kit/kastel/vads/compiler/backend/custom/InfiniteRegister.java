@@ -5,7 +5,7 @@ import org.jspecify.annotations.Nullable;
 
 public class InfiniteRegister implements Register {
 
-    private int number;
+    private final int number;
     @Nullable
     private Register trueRegister;
 
@@ -16,9 +16,12 @@ public class InfiniteRegister implements Register {
     public int getNumber() {
         return number;
     }
-
     public void setTrueRegister(Register reg) {
         this.trueRegister = reg;
+    }
+    @Nullable
+    public Register getTrueRegister() {
+        return trueRegister;
     }
 
     @Override

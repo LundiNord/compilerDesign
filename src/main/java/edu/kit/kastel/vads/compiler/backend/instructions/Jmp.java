@@ -26,4 +26,8 @@ public class Jmp extends AsInstruction {
     public Register getSource() {
         return null;
     }
+
+    public void changeSource(Register reg) {
+        throw new UnsupportedOperationException("Cannot change source of CmplConst");
+    }
 }

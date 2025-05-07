@@ -31,4 +31,8 @@ public class CmplConst extends AsInstruction {
     public Register getSource() {
         return register;
     }
+
+    public void changeSource(Register reg) {
+        throw new UnsupportedOperationException("Cannot change source of CmplConst");
+    }
 }

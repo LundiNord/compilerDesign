@@ -4,7 +4,7 @@ import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
 public class Addl extends AsInstruction {
 
-    private final Register source;
+    private Register source;
     protected final Register destination;
 
     public Addl(Register source, Register destination) {
@@ -22,5 +22,8 @@ public class Addl extends AsInstruction {
     }
     public Register getSource() {
         return source;
+    }
+    public void changeSource(Register reg) {
+        source = reg;
     }
 }

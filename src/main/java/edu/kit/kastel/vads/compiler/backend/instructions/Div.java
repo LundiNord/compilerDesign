@@ -5,7 +5,7 @@ import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 
 public class Div extends AsInstruction {
 
-    private final Register divisor;
+    private Register divisor;
 
     public Div(Register divisor) {
         this.divisor = divisor;
@@ -13,7 +13,7 @@ public class Div extends AsInstruction {
 
     @Override
     public String toString() {
-        return String.format("div %s", divisor.toString());
+        return String.format("divl %s", divisor.toString());
     }
 
     public Register getDestination() {
@@ -21,5 +21,8 @@ public class Div extends AsInstruction {
     }
     public Register getSource() {
         return divisor;
+    }
+    public void changeSource(Register reg) {
+        divisor = reg;
     }
 }
