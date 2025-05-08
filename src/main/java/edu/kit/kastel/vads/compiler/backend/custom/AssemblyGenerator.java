@@ -12,8 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
-
 public class AssemblyGenerator {
 
     private List<AsInstruction> assemblyCode;
@@ -73,8 +71,8 @@ public class AssemblyGenerator {
     private Register maxMunch(Node node) {
         boolean alreadyVisited = !visited.add(node);
         if (alreadyVisited) {
-            assert node.getInstruction() != null;
-            return node.getInstruction().getDestination();  //Could be changes to only store dest register
+            assert node.getDestination() != null;
+            return node.getDestination();  //Could be changes to only store dest register
         }
         switch (node) {
             case ModNode mod -> {
@@ -101,12 +99,12 @@ public class AssemblyGenerator {
                 assemblyCode.add(skipSpecialCase);
                 assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
                 Mod modl = new Mod(succ2);
-                node.setInstruction(modl);
                 assemblyCode.add(modl);
 //                return dest;
 
                 Register destination = getFreshRegister();
                 assemblyCode.add(new Movel(dest, destination));
+                node.setDestination(destination);
                 return destination;
             }
             case DivNode div -> {
@@ -132,20 +130,19 @@ public class AssemblyGenerator {
                 assemblyCode.add(skipSpecialCase);
                 assemblyCode.add(new MovlConst(0, new StandardRegister("%edx", false)));   //replace with xor for performance?
                 Div divl = new Div(succ2);
-                node.setInstruction(divl);
                 assemblyCode.add(divl);
 
                 Register destination = getFreshRegister();
                 assemblyCode.add(new Movel(dest, destination));
+                node.setDestination(destination);
                 return destination;
-
 //                return dest;
             }
             case ConstIntNode constIntNode -> {
                 Register dest = getFreshRegister();
                 MovlConst movlConst = new MovlConst(constIntNode.value(), dest);
-                node.setInstruction(movlConst);
                 assemblyCode.add(movlConst);
+                node.setDestination(dest);
                 return dest;
             }
             case SubNode sub -> {
@@ -160,8 +157,8 @@ public class AssemblyGenerator {
                 assert succ1 != null;
                 assert succ2 != null;
                 Subl subl = new Subl(succ2, dest);
-                node.setInstruction(subl);
                 assemblyCode.add(subl);
+                node.setDestination(dest);
                 return dest;
             }
             case AddNode add -> {
@@ -176,8 +173,8 @@ public class AssemblyGenerator {
                 assert succ1 != null;
                 assert succ2 != null;
                 Addl addl = new Addl(succ2, dest);
-                node.setInstruction(addl);
                 assemblyCode.add(addl);
+                node.setDestination(dest);
                 return dest;
             }
             case MulNode mul -> {
@@ -189,11 +186,11 @@ public class AssemblyGenerator {
                 assemblyCode.add(new Movel(succ1, dest));
                 assert succ2 != null;
                 Mul mull = new Mul(succ2);
-                node.setInstruction(mull);
                 assemblyCode.add(mull);
 
                 Register destination = getFreshRegister();
                 assemblyCode.add(new Movel(dest, destination));
+                node.setDestination(destination);
                 return destination;
 
                 //return dest;
@@ -214,7 +211,10 @@ public class AssemblyGenerator {
             }
             case ProjNode projNode -> {
                 if (projNode.info().equals("RESULT")) {
-                    return maxMunch(projNode.predecessors().getFirst());
+                    Register reg = maxMunch(projNode.predecessors().getFirst());
+                    assert reg != null;
+                    node.setDestination(reg);
+                    return reg;
                 } else {
                     return null;    //ToDo: also calculate side effect
                 }

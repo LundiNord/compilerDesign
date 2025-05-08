@@ -137,7 +137,7 @@ public class RegisterAlloc {
 
         for (InterferenceNode node : interferenceGraph.getVertexes()) {
             int color = node.getColor();
-            if (topColors.contains(color)) {
+            if (topColors.contains(color) ) {
                 StandardRegister reg = (StandardRegister) REGISTERS[topColors.indexOf(color)];
                 regSelection.put((InfiniteRegister) node.getReg(), reg);
             } else {

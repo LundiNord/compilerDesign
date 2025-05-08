@@ -13,7 +13,7 @@ public class Div extends AsInstruction {
 
     @Override
     public String toString() {
-        return String.format("cdq \n idivl %s", divisor.toString());
+        return String.format("cdq\nidivl %s", divisor.toString());
     }
 
     public Register getDestination() {
