@@ -81,7 +81,7 @@ public class RegisterAlloc {
                     }
                 }
             }
-            //build vertexes in graph
+            //init vertexes in graph
             if (dest != null && dest.getClass() == InfiniteRegister.class) {
                 interferenceGraph.addVertex(dest);
             }

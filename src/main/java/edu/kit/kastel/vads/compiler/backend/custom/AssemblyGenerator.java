@@ -110,6 +110,8 @@ public class AssemblyGenerator {
             case DivNode div -> {
                 Node successor1 = div.predecessors().get(0);    //oberer -> dividend
                 Node successor2 = div.predecessors().get(1);    //unterer -> divisor
+                Node sideEffect = div.predecessors().get(2); //side effect
+                maxMunch(sideEffect);
                 Register succ1 = maxMunch(successor1);
                 Register succ2 = maxMunch(successor2);
                 Register dest = new StandardRegister("%eax", false);    //dividend
@@ -198,8 +200,8 @@ public class AssemblyGenerator {
             case ReturnNode returnNode -> {
                 Register succ = null;
                 for (Node predecessor : returnNode.predecessors()) {
-                    if (predecessor.getClass() == ProjNode.class && ((ProjNode) predecessor).info().equals("SIDE_EFFECT")) {     //get rid of project node
-                        continue;
+                    if (predecessor.getClass() == ProjNode.class && ((ProjNode) predecessor).info().equals("SIDE_EFFECT")) {
+                        maxMunch(node); //calculate value and don't store it
                     }
                     succ = maxMunch(predecessor);
                 }
@@ -215,8 +217,14 @@ public class AssemblyGenerator {
                     assert reg != null;
                     node.setDestination(reg);
                     return reg;
+                } else if (projNode.info().equals("SIDE_EFFECT")) {
+                    // do nothing
+                    Node successor1 = projNode.predecessors().getFirst();
+                    Register reg = maxMunch(successor1);
+                    node.setDestination(reg);
+                    return null;
                 } else {
-                    return null;    //ToDo: also calculate side effect
+                   throw new IllegalStateException("Unexpected value: " + projNode.info());
                 }
             }
             case Block _, StartNode _ -> {
