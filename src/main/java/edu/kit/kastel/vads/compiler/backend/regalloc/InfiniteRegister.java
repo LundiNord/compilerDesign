@@ -1,8 +1,11 @@
-package edu.kit.kastel.vads.compiler.backend.custom;
+package edu.kit.kastel.vads.compiler.backend.regalloc;
 
-import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import org.jspecify.annotations.Nullable;
 
+/**
+ * Abstracted register that is a variable in a program.
+ * @author ujiqk
+ * @version 1.0 */
 public class InfiniteRegister implements Register {
 
     private final int number;

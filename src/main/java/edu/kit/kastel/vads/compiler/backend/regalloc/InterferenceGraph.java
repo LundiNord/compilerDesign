@@ -2,6 +2,11 @@ package edu.kit.kastel.vads.compiler.backend.regalloc;
 
 import java.util.*;
 
+/**
+ * Graph as an adjacence List.
+ * Node {@link InterferenceNode}.
+ * @author ujiqk
+ * @version 1.0 */
 public class InterferenceGraph {
     //https://www.baeldung.com/java-graphs
 
@@ -54,6 +59,10 @@ public class InterferenceGraph {
         return new ArrayList<>(adjacencyList.keySet());
     }
 
+    /**
+     * Does Maximum Cardinality Search.
+     * @return all nodes ordered by cardinality.
+     */
     private List<InterferenceNode> doMCS() {
         // |V| = n
         int n = adjacencyList.size();
@@ -79,6 +88,10 @@ public class InterferenceGraph {
         return viList;
     }
 
+    /**
+     * Colors using minimal Colors.
+     * @return maximal color used.
+     */
     public int doColoring() {
         int maxColor = 1;
         int n = adjacencyList.size();
@@ -103,7 +116,5 @@ public class InterferenceGraph {
         }
         return maxColor;
     }
-
-
 
 }

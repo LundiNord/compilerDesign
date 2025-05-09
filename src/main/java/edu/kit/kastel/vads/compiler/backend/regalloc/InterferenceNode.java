@@ -1,5 +1,9 @@
 package edu.kit.kastel.vads.compiler.backend.regalloc;
 
+/**
+ * Node in a {@link InterferenceGraph}.
+ * @author ujiqk
+ * @version 1.0 */
 public class InterferenceNode {
 
     private final Register reg;
@@ -16,6 +20,13 @@ public class InterferenceNode {
     public int hashCode() {
         return reg.hashCode();
     }
+
+    /**
+     * Nodes are the same if they contain the same register.
+     * The rest is ignored.
+     * @param obj The Object to compare to.
+     * @return true: same register, false: different register
+     */
     @Override
     public boolean equals(Object obj) {
         if (obj == null) {

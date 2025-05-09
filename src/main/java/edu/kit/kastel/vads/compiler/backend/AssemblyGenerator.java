@@ -1,8 +1,10 @@
-package edu.kit.kastel.vads.compiler.backend.custom;
+package edu.kit.kastel.vads.compiler.backend;
 
 import edu.kit.kastel.vads.compiler.backend.instructions.*;
+import edu.kit.kastel.vads.compiler.backend.regalloc.InfiniteRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import edu.kit.kastel.vads.compiler.backend.regalloc.RegisterAlloc;
+import edu.kit.kastel.vads.compiler.backend.regalloc.StandardRegister;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.node.*;
 import org.jspecify.annotations.Nullable;
@@ -12,6 +14,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Entry Point for Instruction selection and register allocation.
+ * @author ujiqk
+ * @version 1.0 */
 public class AssemblyGenerator {
 
     private List<AsInstruction> assemblyCode;
@@ -44,6 +50,11 @@ public class AssemblyGenerator {
          visited = new HashSet<Node>();
     }
 
+    /**
+     * Generates x86-64 assembly code from the IR SSA graph.
+     * @param programs Multiple IR SSA graphs. Currently only translates first graph.
+     * @return The String with x86-64 assembly code.
+     */
     public String generateCode(List<IrGraph> programs) {
         IrGraph program = programs.getFirst();
 
@@ -66,7 +77,11 @@ public class AssemblyGenerator {
         return result + endTemplate;
     }
 
-
+    /**
+     * Does recursive Instruction Selection using maximum munch algorithmus.
+     * @param node Start Node.
+     * @return Register/Variable where the result value is stored.
+     */
     @Nullable
     private Register maxMunch(Node node) {
         boolean alreadyVisited = !visited.add(node);

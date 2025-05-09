@@ -1,8 +1,5 @@
 package edu.kit.kastel.vads.compiler.backend.regalloc;
 
-import edu.kit.kastel.vads.compiler.backend.custom.InfiniteRegister;
-import edu.kit.kastel.vads.compiler.backend.custom.StackRegister;
-import edu.kit.kastel.vads.compiler.backend.custom.StandardRegister;
 import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
 import edu.kit.kastel.vads.compiler.backend.instructions.Movel;
 import edu.kit.kastel.vads.compiler.backend.instructions.MovlConst;
@@ -34,19 +31,11 @@ public class RegisterAlloc {
     }
 
     public List<AsInstruction> doRegAlloc() {
+        calculateLiveInfo();
         simpleInterference();
         int maxColor = interferenceGraph.doColoring();
         //count occurrences of each register and group by coloring
-        Map<Integer, Integer> occurrences = new HashMap<>();    //Color, n                 //could maybe be done earlier
-        for (int i = 0; i < assemblyCode.size(); i++) {
-            AsInstruction instruction = assemblyCode.get(i);
-            if (instruction.getDestination() != null && instruction.getDestination() instanceof InfiniteRegister infiniteRegister) {
-                occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
-            }       //ToDo: laufzeit von dem hier schlimm?
-            if (instruction.getSource() != null && instruction.getSource() instanceof InfiniteRegister infiniteRegister) {
-                occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
-            }
-        }
+        Map<Integer, Integer> occurrences = countOccurrences();
         //replace all infinite registers with standard registers
         Map<InfiniteRegister, Register> regSelection = selectRegisters(occurrences, maxColor);
         for (int i = 0; i < assemblyCode.size(); i++) {
@@ -61,7 +50,27 @@ public class RegisterAlloc {
         return assemblyCode;
     }
 
-    private void simpleInterference() {
+    /**
+     * @return Map with Color, n
+     */
+    private Map<Integer, Integer> countOccurrences() {
+        Map<Integer, Integer> occurrences = new HashMap<>();
+        for (AsInstruction instruction : assemblyCode) {
+            if (instruction.getDestination() != null && instruction.getDestination() instanceof InfiniteRegister infiniteRegister) {
+                occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
+            }       //ToDo: laufzeit von dem hier schlimm?
+            if (instruction.getSource() != null && instruction.getSource() instanceof InfiniteRegister infiniteRegister) {
+                occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
+            }
+        }
+        return occurrences;
+    }
+
+    /**
+     * Puts live info into the Instructions.
+     * Also, inits graph.
+     */
+    private void calculateLiveInfo() {
         //calculate live info       //ToDo: use a better algorithm
         for (int i = assemblyCode.size() - 1; 0 < i; i--) {
             Register dest = assemblyCode.get(i).getDestination();
@@ -89,6 +98,9 @@ public class RegisterAlloc {
                 interferenceGraph.addVertex(src);
             }
         }
+    }
+
+    private void simpleInterference() {
         //build graph
         for (int i = 0; i < assemblyCode.size(); i++) {
             Register src = assemblyCode.get(i).getSource();
@@ -130,7 +142,7 @@ public class RegisterAlloc {
     private Map<InfiniteRegister, Register> selectRegisters(Map<Integer, Integer> occurrences, int maxColor) {
         //14 registers available
         Map<InfiniteRegister, Register> regSelection = new HashMap<>();
-        //top occurrences get color, the rest get space on the stack
+        //the top occurrences get color, the rest get space on the stack
         List<Integer> topColors = occurrences.entrySet().stream()
                 .sorted(Map.Entry.<Integer, Integer>comparingByValue().reversed())
                 .map(Map.Entry::getKey).limit(REGISTERS.length).toList();

@@ -1,9 +1,7 @@
-package edu.kit.kastel.vads.compiler.backend.custom;
-
-import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
+package edu.kit.kastel.vads.compiler.backend.regalloc;
 
 /**
- * Describes Space on the stack
+ * Describes Space on the stack.
  */
 public class StackRegister implements Register {
 

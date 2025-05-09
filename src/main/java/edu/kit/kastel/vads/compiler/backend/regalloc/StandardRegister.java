@@ -1,7 +1,9 @@
-package edu.kit.kastel.vads.compiler.backend.custom;
+package edu.kit.kastel.vads.compiler.backend.regalloc;
 
-import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
-
+/**
+ * A Register in the cpu.
+ * @author ujiqk
+ * @version 1.0 */
 public class StandardRegister implements Register {
 
     private String name;
