@@ -75,7 +75,7 @@ public class RegisterAlloc {
         for (int i = assemblyCode.size() - 1; 0 < i; i--) {
             Register dest = assemblyCode.get(i).getDestination();
             Register src = assemblyCode.get(i).getSource();
-            //And a variable that is used on the right-hand side of an instruction is live for that instruction
+            //And a variable that is used on the right-hand side of an instruction is live for that instruction.
             if (src != null && src.getClass() == InfiniteRegister.class) {
                 assemblyCode.get(i).addLiveIn(src);
             }
@@ -91,11 +91,11 @@ public class RegisterAlloc {
                 }
             }
             //init vertexes in graph
-            if (dest != null && dest.getClass() == InfiniteRegister.class) {
-                interferenceGraph.addVertex(dest);
+            if (dest != null && dest instanceof InfiniteRegister infiniteRegister) {
+                interferenceGraph.addVertex(infiniteRegister);
             }
-            if (src != null && src.getClass() == InfiniteRegister.class) {
-                interferenceGraph.addVertex(src);
+            if (src != null && src instanceof InfiniteRegister infiniteRegister) {
+                interferenceGraph.addVertex(infiniteRegister);
             }
         }
     }
@@ -108,11 +108,13 @@ public class RegisterAlloc {
             if (dest == null || dest instanceof StandardRegister) {
                 continue;
             }
+            //InfiniteRegister infSrc = (InfiniteRegister) src;
+            InfiniteRegister infDest = (InfiniteRegister) dest;
             if (assemblyCode.get(i).getClass() == MovlConst.class) {
                 Set<Register> liveInAfter = assemblyCode.get(i + 1).getLiveIn();
                 for (Register reg : liveInAfter) {
                     if (!reg.equals(dest)) {
-                        interferenceGraph.addEdge(dest, reg);
+                        interferenceGraph.addEdge(infDest, (InfiniteRegister) reg); //ToDo remove casts
                     }
                 }
             }
@@ -124,15 +126,15 @@ public class RegisterAlloc {
                 Set<Register> liveInAfter = assemblyCode.get(i + 1).getLiveIn();
                 for (Register reg : liveInAfter) {
                     if (!reg.equals(dest) && !reg.equals(src)) {
-                        interferenceGraph.addEdge(dest, reg);
+                        interferenceGraph.addEdge(infDest, (InfiniteRegister) reg);
                     }
                 }
                 //ToDo: we omit the potential edge between t and s
             } else {
-                Set<Register> liveInAfter = assemblyCode.get(i + 1).getLiveIn();
+                Set<Register> liveInAfter =  assemblyCode.get(i + 1).getLiveIn();
                 for (Register reg : liveInAfter) {
                     if (!reg.equals(dest)) {
-                        interferenceGraph.addEdge(dest, reg);
+                        interferenceGraph.addEdge(infDest, (InfiniteRegister) reg);
                     }
                 }
             }

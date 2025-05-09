@@ -71,10 +71,9 @@ public class AssemblyGenerator {
         assemblyCode = regAlloc.doRegAlloc();
         assemblyCode = regAlloc.removeMemToMem();
 
-        String result = assemblyCode.stream()
-                .map(AsInstruction::toString)
-                .reduce(template, (acc, instruction) -> acc + instruction + "\n");
-        return result + endTemplate;
+        StringBuilder result = new StringBuilder(template);
+        assemblyCode.forEach(instruction -> result.append(instruction).append("\n"));
+        return result.append(endTemplate).toString();
     }
 
     /**

@@ -10,40 +10,40 @@ import java.util.*;
 public class InterferenceGraph {
     //https://www.baeldung.com/java-graphs
 
-    private final Map<InterferenceNode, List<InterferenceNode>> adjacencyList;
+    private final Map<InterferenceLabel, InterferenceNode> adjacencyList;
 
     public InterferenceGraph() {
         adjacencyList = new HashMap<>();
     }
 
-    public void addVertex(Register label) {
-        if (label == null){
+    public void addVertex(InfiniteRegister label) {
+        if (label == null) {
             throw new IllegalArgumentException("Label cannot be null");
         }
-        adjacencyList.putIfAbsent(new InterferenceNode(label), new ArrayList<>());
+        adjacencyList.putIfAbsent(new InterferenceLabel(label.getNumber()), new InterferenceNode(label));
     }
 //    public void removeVertex(Register label) {
 //        InterferenceNode v = new InterferenceNode(label);
 //        adjacencyList.values().forEach(e -> e.remove(v));
 //        adjacencyList.remove(new InterferenceNode(label));
 //    }
-    //Helper method to get the actual node instance from the map
-    public InterferenceNode getNode(Register label) {      //hope this is ok for performance
-        InterferenceNode key = new InterferenceNode(label);
-        return Objects.requireNonNull(adjacencyList.keySet().stream()
-                .filter(key::equals)
-                .findFirst()
-                .orElse(null));
+
+    public InterferenceNode getNode(InfiniteRegister label) {
+        return adjacencyList.get(new InterferenceLabel(label.getNumber()));
     }
-    public void addEdge(Register label1, Register label2) {
-        InterferenceNode v1 = getNode(label1);
-        InterferenceNode v2 =  getNode(label2);
-        if (!adjacencyList.get(v1).contains(v2)) {
-            adjacencyList.get(v1).add(v2);
+    public void addEdge(InfiniteRegister label1, InfiniteRegister label2) {
+        InterferenceNode v1 = adjacencyList.get(new InterferenceLabel(label1.getNumber()));
+        InterferenceNode v2 = adjacencyList.get(new InterferenceLabel(label2.getNumber()));
+        if (v1 == null) {
+            addVertex(label1);
+            v1 = adjacencyList.get(new InterferenceLabel(label1.getNumber()));
         }
-        if (!adjacencyList.get(v2).contains(v1)) {
-            adjacencyList.get(v2).add(v1);
+        if (v2 == null) {
+            addVertex(label2);
+            v2 = adjacencyList.get(new InterferenceLabel(label2.getNumber()));
         }
+        v1.addAdjacent(new InterferenceLabel(label2.getNumber()));
+        v2.addAdjacent(new InterferenceLabel(label1.getNumber()));
     }
 //    public void removeEdge(Register label1, Register label2) {
 //        InterferenceNode v1 = new InterferenceNode(label1);
@@ -56,7 +56,7 @@ public class InterferenceGraph {
 //            eV2.remove(v1);
 //    }
     public List<InterferenceNode> getVertexes() {
-        return new ArrayList<>(adjacencyList.keySet());
+        return new ArrayList<>(adjacencyList.values());
     }
 
     /**
@@ -69,7 +69,7 @@ public class InterferenceGraph {
         //For all v ∈ V set wt(v) ← 0
         //done
         //Let W ← V
-        List<InterferenceNode> w = new ArrayList<>(adjacencyList.keySet());
+        List<InterferenceNode> w = new ArrayList<>(adjacencyList.values());
         w.sort(Comparator.comparingInt(InterferenceNode::getMcsWeight).reversed());
         List <InterferenceNode> viList = new ArrayList<>();
         //For i ← 1 to n do
@@ -79,7 +79,8 @@ public class InterferenceGraph {
             //Set vi ← v
             viList.add(v);
             //For all u ∈ W ∩ N (v) set wt(u) ← wt(u) + 1
-            for (InterferenceNode u : adjacencyList.get(v)) {
+            for (InterferenceLabel uu : adjacencyList.get(new InterferenceLabel(v.getReg().getNumber())).getAdjacent()) {
+                InterferenceNode u = adjacencyList.get(uu);
                 u.setMcsWeight(u.getMcsWeight() + 1);
             }
             //Set W ← W \ {v}
@@ -101,7 +102,8 @@ public class InterferenceGraph {
             //Let c be the lowest color not used in N (vi)
             InterferenceNode vi = viList.get(i);
             Set<Integer> usedColors = new HashSet<>();
-            for (InterferenceNode u : adjacencyList.get(vi)) {
+            for (InterferenceLabel uu : adjacencyList.get(new InterferenceLabel(vi.getReg().getNumber())).getAdjacent()) {
+                InterferenceNode u = adjacencyList.get(uu);
                 if (u.getColor() != 0) {
                     usedColors.add(u.getColor());
                 }

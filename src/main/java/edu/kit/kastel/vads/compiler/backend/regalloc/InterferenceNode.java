@@ -1,44 +1,31 @@
 package edu.kit.kastel.vads.compiler.backend.regalloc;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
 /**
  * Node in a {@link InterferenceGraph}.
  * @author ujiqk
  * @version 1.0 */
 public class InterferenceNode {
 
-    private final Register reg;
+    private final InfiniteRegister reg;
     private int mcsWeight;          //Maximum Cardinality Search Weight
     private int color;
+    private final HashSet<InterferenceLabel> adjacent;
 
-    InterferenceNode(Register reg) {
+    InterferenceNode(InfiniteRegister reg) {
         this.reg = reg;
         mcsWeight = 0;
         color = 0;      //0: no color
+        adjacent = new HashSet<>();
     }
-
-    @Override
-    public int hashCode() {
-        return reg.hashCode();
+    public List<InterferenceLabel> getAdjacent() {
+        return adjacent.stream().toList();
     }
-
-    /**
-     * Nodes are the same if they contain the same register.
-     * The rest is ignored.
-     * @param obj The Object to compare to.
-     * @return true: same register, false: different register
-     */
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj instanceof InterferenceNode interferenceNode) {
-            if (this.reg == null) {
-                return false;
-            }
-            return reg.equals(interferenceNode.reg);
-        }
-        return false;
+    public void addAdjacent(InterferenceLabel label) {
+        adjacent.add(label);
     }
     public int getMcsWeight() {
         return mcsWeight;
@@ -46,7 +33,7 @@ public class InterferenceNode {
     public void setMcsWeight(int weight) {
         this.mcsWeight = weight;
     }
-    public Register getReg() {
+    public InfiniteRegister getReg() {
         return reg;
     }
     public int getColor() {
