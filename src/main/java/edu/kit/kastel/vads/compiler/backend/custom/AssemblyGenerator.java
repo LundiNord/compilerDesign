@@ -71,7 +71,6 @@ public class AssemblyGenerator {
     private Register maxMunch(Node node) {
         boolean alreadyVisited = !visited.add(node);
         if (alreadyVisited) {
-            assert node.getDestination() != null;
             return node.getDestination();  //Could be changes to only store dest register
         }
         switch (node) {
@@ -100,7 +99,6 @@ public class AssemblyGenerator {
                 assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
                 Mod modl = new Mod(succ2);
                 assemblyCode.add(modl);
-//                return dest;
 
                 Register destination = getFreshRegister();
                 assemblyCode.add(new Movel(dest, destination));
@@ -138,7 +136,6 @@ public class AssemblyGenerator {
                 assemblyCode.add(new Movel(dest, destination));
                 node.setDestination(destination);
                 return destination;
-//                return dest;
             }
             case ConstIntNode constIntNode -> {
                 Register dest = getFreshRegister();
@@ -194,8 +191,6 @@ public class AssemblyGenerator {
                 assemblyCode.add(new Movel(dest, destination));
                 node.setDestination(destination);
                 return destination;
-
-                //return dest;
             }
             case ReturnNode returnNode -> {
                 Register succ = null;
@@ -220,7 +215,7 @@ public class AssemblyGenerator {
                 } else if (projNode.info().equals("SIDE_EFFECT")) {
                     // do nothing
                     Node successor1 = projNode.predecessors().getFirst();
-                    Register reg = maxMunch(successor1);
+                    Register reg = maxMunch(successor1);    //bei START hier null
                     node.setDestination(reg);
                     return null;
                 } else {
@@ -240,19 +235,3 @@ public class AssemblyGenerator {
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
