@@ -68,7 +68,7 @@ public class IrGraph {
                 node.replacePredecessor(oldNode, newNode);
         }
         this.successors.remove(oldNode);
-        System.out.println("Replaced node " + oldNode + " with new node " + newNode);
+        //System.out.println("Replaced node " + oldNode + " with new node " + newNode);
     }
 
 }

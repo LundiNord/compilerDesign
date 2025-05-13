@@ -72,7 +72,7 @@ public class RegisterAlloc {
      */
     private void calculateLiveInfo() {
         //calculate live info
-        for (int i = assemblyCode.size() - 1; 0 < i; i--) {
+        for (int i = assemblyCode.size() - 1; 0 <= i; i--) {
             Register dest = assemblyCode.get(i).getDestination();
             Register src = assemblyCode.get(i).getSource();
             //And a variable that is used on the right-hand side of an instruction is live for that instruction.
