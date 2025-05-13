@@ -20,7 +20,7 @@ public class Sal extends AsInstruction {
 
     @Override
     public String toString() {
-        return String.format("shl %d, %s", amount, destination.toString());
+        return String.format("shl $%d, %s", amount, destination.toString());
     }
 
     public Register getDestination() {

@@ -1,11 +1,17 @@
 int main() {
-    int a = 10;
-    int b = 5;
-    int c = a + b;    // 15
-    int d = a - b;    // 5
-    int e = a * b;    // 50
-    int f = a / b;    // 2
-    int g = a % b;    // 0
-
-    return 42;
+  int a = 5;
+  int b = 10;
+  a += b;
+  b = (a * 2) - 4;
+  int c;
+  c = b / a;
+  int d = 0xF;
+  d *= 2;
+  int e;
+  e = -d + (c * 3);
+  a = e % 4;
+  b -= a;
+  c = (b + a) * (d - e);
+  int f = c / (a + 1);
+  return f;
 }

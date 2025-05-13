@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static edu.kit.kastel.vads.compiler.Main.DO_STRENGTH_REDUCTION;
 import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
 
 /**
@@ -233,9 +234,9 @@ public class AssemblyGenerator {
         return destination;
     }
 
-    @Nullable           //ToDo
+    @Nullable
     private Register mulStrengthReduction(MulNode mul, Register succ, int value) {
-        if (isPowerOfTwo(value) && false) {
+        if (isPowerOfTwo(value) && DO_STRENGTH_REDUCTION) {
             //do bitwise shift
             int amount = Integer.numberOfTrailingZeros(value);
             assemblyCode.add(new Sal(amount, succ));
@@ -243,7 +244,7 @@ public class AssemblyGenerator {
             assemblyCode.add(new Movel(succ, dest));
             mul.setDestination(dest);
             return dest;
-        }
+        }       //ToDo: reg alloc fails here
         return null;
     }
 

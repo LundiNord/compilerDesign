@@ -13,9 +13,10 @@ import edu.kit.kastel.vads.compiler.ir.node.SubNode;
 import java.util.ArrayList;
 import java.util.List;
 
+import static edu.kit.kastel.vads.compiler.Main.DO_OPTIMIZATION;
+
 public class IrOptimizer {
 
-    private static final boolean DO_OPTIMIZATION = false;
     private final List<Node> constEvalQueue;
 
     public IrOptimizer(){
@@ -36,7 +37,7 @@ public class IrOptimizer {
         //work upwards
         while (constEvalQueue.size() > 1) {
             Node node = constEvalQueue.removeFirst();
-            for (Node succ : program.successors(node)) {
+            for (Node succ : program.successors(node)) {    //ToDo successors not set correctly on new nodes
                 //go through all and search for only const children
                 if (succ.predecessors().size() < 2) {
                     continue;
@@ -84,6 +85,7 @@ public class IrOptimizer {
                            constEvalQueue.add(newNode);
                        }
                        default -> {
+                           //do nothing
                        }
                    }
                }

@@ -24,6 +24,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
+
+    public static final boolean DO_OPTIMIZATION = false;
+    public static final boolean DO_STRENGTH_REDUCTION = false;
+
     public static void main(String[] args) throws IOException {
         if (args.length != 2) {
             System.err.println("Invalid arguments: Expected one input file and one output file");
@@ -52,7 +56,6 @@ public class Main {
                 dumpGraph(graph, tmp, "before-codegen");
             }
         }
-        //ToDo: do constant propagation
         graphs = new IrOptimizer().optimize(graphs);
         String s = new AssemblyGenerator().generateCode(graphs);
         Files.writeString(Path.of(output + ".s"), s);
