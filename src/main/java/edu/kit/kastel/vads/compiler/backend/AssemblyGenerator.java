@@ -1,18 +1,43 @@
 package edu.kit.kastel.vads.compiler.backend;
 
-import edu.kit.kastel.vads.compiler.backend.instructions.*;
+import edu.kit.kastel.vads.compiler.backend.instructions.Addl;
+import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
+import edu.kit.kastel.vads.compiler.backend.instructions.CmplConst;
+import edu.kit.kastel.vads.compiler.backend.instructions.Div;
+import edu.kit.kastel.vads.compiler.backend.instructions.Jne;
+import edu.kit.kastel.vads.compiler.backend.instructions.Label;
+import edu.kit.kastel.vads.compiler.backend.instructions.Mod;
+import edu.kit.kastel.vads.compiler.backend.instructions.Movel;
+import edu.kit.kastel.vads.compiler.backend.instructions.MovlConst;
+import edu.kit.kastel.vads.compiler.backend.instructions.Mul;
+import edu.kit.kastel.vads.compiler.backend.instructions.Sal;
+import edu.kit.kastel.vads.compiler.backend.instructions.Subl;
 import edu.kit.kastel.vads.compiler.backend.regalloc.InfiniteRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import edu.kit.kastel.vads.compiler.backend.regalloc.RegisterAlloc;
 import edu.kit.kastel.vads.compiler.backend.regalloc.StandardRegister;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
-import edu.kit.kastel.vads.compiler.ir.node.*;
+import edu.kit.kastel.vads.compiler.ir.node.AddNode;
+import edu.kit.kastel.vads.compiler.ir.node.Block;
+import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode;
+import edu.kit.kastel.vads.compiler.ir.node.DivNode;
+import edu.kit.kastel.vads.compiler.ir.node.ModNode;
+import edu.kit.kastel.vads.compiler.ir.node.MulNode;
+import edu.kit.kastel.vads.compiler.ir.node.Node;
+import edu.kit.kastel.vads.compiler.ir.node.ProjNode;
+import edu.kit.kastel.vads.compiler.ir.node.ReturnNode;
+import edu.kit.kastel.vads.compiler.ir.node.StartNode;
+import edu.kit.kastel.vads.compiler.ir.node.SubNode;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Objects;
+
+import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
 
 /**
  * Entry Point for Instruction selection and register allocation.
@@ -21,7 +46,7 @@ import java.util.Set;
 public class AssemblyGenerator {
 
     private List<AsInstruction> assemblyCode;
-    private final Set<Node> visited;
+    private final Map<Node, Node> visited;
     private static final String template = """
             .global main
             .global _main
@@ -39,6 +64,7 @@ public class AssemblyGenerator {
 
             """;
     private static final String endTemplate = """
+            
             movq %rbp, %rsp
             popq %rbp
             ret
@@ -46,22 +72,23 @@ public class AssemblyGenerator {
     private int nextRegister = 1;
 
     public AssemblyGenerator() {
-        assemblyCode = new ArrayList<AsInstruction>();
-         visited = new HashSet<Node>();
+        assemblyCode = new ArrayList<>();
+        visited = new HashMap<>();
     }
 
     /**
      * Generates x86-64 assembly code from the IR SSA graph.
-     * @param programs Multiple IR SSA graphs. Currently only translates first graph.
+     * Side Effect: Populates assemblyCode List.
+     * @param programs Multiple IR SSA graphs. Currently only translates the first graph.
      * @return The String with x86-64 assembly code.
      */
     public String generateCode(List<IrGraph> programs) {
         IrGraph program = programs.getFirst();
 
-//        System.out.println("-----------------");
-//        System.out.print(print(program));
-//        System.out.println();
-//        System.out.println("-----------------");
+        System.out.println("-----------------");
+        System.out.print(print(program));
+        System.out.println();
+        System.out.println("-----------------");
 
         Node endNode = program.endBlock();
         Node returnNode = endNode.predecessors().getFirst();
@@ -82,74 +109,19 @@ public class AssemblyGenerator {
      * @return Register/Variable where the result value is stored.
      */
     @Nullable
-    private Register maxMunch(Node node) {
-        boolean alreadyVisited = !visited.add(node);
-        if (alreadyVisited) {
-            return node.getDestination();  //Could be changes to only store dest register
+    private Register maxMunch(Node node) {      //ToDo: do strength reduction
+        Node alreadyVisited = visited.get(node);
+        if (alreadyVisited != null) {
+            return alreadyVisited.getDestination();  //Could be changes to only store dest register
+        } else {
+            visited.put(node, node);
         }
         switch (node) {
             case ModNode mod -> {
-                Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
-                Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
-                Register succ1 = maxMunch(successor1);      //ToDo: change maxMunch to give in desired dest register
-                Register succ2 = maxMunch(successor2);
-                Register dest = new StandardRegister("%edx", false);
-                Register dividend = new StandardRegister("%eax", false); //dividend
-                assemblyCode.add(new Movel(succ1, dividend));
-                assert succ2 != null;
-
-                // Add runtime check for INT_MIN / -1
-                Label skipSpecialCase = new Label("skip_special_case_" + nextRegister++);
-                // Check if divisor is -1
-                assemblyCode.add(new CmplConst(-1, succ2));
-                assemblyCode.add(new Jne(skipSpecialCase));
-                // Check if dividend is INT_MIN
-                assemblyCode.add(new CmplConst(Integer.MIN_VALUE, dividend));
-                assemblyCode.add(new Jne(skipSpecialCase));
-                // Throw exception by dividing by zero
-                assemblyCode.add(new MovlConst(0, succ2));
-
-                assemblyCode.add(skipSpecialCase);
-                assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
-                Mod modl = new Mod(succ2);
-                assemblyCode.add(modl);
-
-                Register destination = getFreshRegister();
-                assemblyCode.add(new Movel(dest, destination));
-                node.setDestination(destination);
-                return destination;
+                return modMaxMunch(mod);
             }
             case DivNode div -> {
-                Node successor1 = div.predecessors().get(0);    //oberer -> dividend
-                Node successor2 = div.predecessors().get(1);    //unterer -> divisor
-                Node sideEffect = div.predecessors().get(2); //side effect
-                maxMunch(sideEffect);
-                Register succ1 = maxMunch(successor1);
-                Register succ2 = maxMunch(successor2);
-                Register dest = new StandardRegister("%eax", false);    //dividend
-                assemblyCode.add(new Movel(succ1, dest));       //ToDo: change maxMunch to give in desired dest register
-                assert succ2 != null;
-
-                // Add runtime check for INT_MIN / -1
-                Label skipSpecialCase = new Label("skip_special_case_" + nextRegister++);
-                // Check if divisor is -1
-                assemblyCode.add(new CmplConst(-1, succ2));
-                assemblyCode.add(new Jne(skipSpecialCase));
-                // Check if dividend is INT_MIN
-                assemblyCode.add(new CmplConst(Integer.MIN_VALUE, dest));
-                assemblyCode.add(new Jne(skipSpecialCase));
-                // Throw exception by dividing by zero
-                assemblyCode.add(new MovlConst(0, succ2));
-
-                assemblyCode.add(skipSpecialCase);
-                assemblyCode.add(new MovlConst(0, new StandardRegister("%edx", false)));   //replace with xor for performance?
-                Div divl = new Div(succ2);
-                assemblyCode.add(divl);
-
-                Register destination = getFreshRegister();
-                assemblyCode.add(new Movel(dest, destination));
-                node.setDestination(destination);
-                return destination;
+                return divMaxMunch(div);
             }
             case ConstIntNode constIntNode -> {
                 Register dest = getFreshRegister();
@@ -191,26 +163,14 @@ public class AssemblyGenerator {
                 return dest;
             }
             case MulNode mul -> {
-                Node successor1 = mul.predecessors().get(0);
-                Node successor2 = mul.predecessors().get(1);
-                Register succ1 = maxMunch(successor1);  //ToDo: change maxMunch to give in desired dest register
-                Register succ2 = maxMunch(successor2);
-                Register dest = new StandardRegister("%eax", false);    //dividend
-                assemblyCode.add(new Movel(succ1, dest));
-                assert succ2 != null;
-                Mul mull = new Mul(succ2);
-                assemblyCode.add(mull);
-
-                Register destination = getFreshRegister();
-                assemblyCode.add(new Movel(dest, destination));
-                node.setDestination(destination);
-                return destination;
+                return mulMaxMunch(mul);
             }
             case ReturnNode returnNode -> {
                 Register succ = null;
                 for (Node predecessor : returnNode.predecessors()) {
                     if (predecessor.getClass() == ProjNode.class && ((ProjNode) predecessor).info().equals("SIDE_EFFECT")) {
-                        maxMunch(node); //calculate value and don't store it
+                        maxMunch(predecessor); //calculate value and don't store it
+                        continue;
                     }
                     succ = maxMunch(predecessor);
                 }
@@ -242,6 +202,118 @@ public class AssemblyGenerator {
             }
             default -> throw new IllegalStateException("Unexpected value: " + node);
         }
+    }
+
+    private Register mulMaxMunch(MulNode mul) {
+        Node successor1 = mul.predecessors().get(0);
+        Node successor2 = mul.predecessors().get(1);
+        //do strength reduction
+        if (successor1 instanceof ConstIntNode constInt) {  //case if both are const should not happen with
+            Register ret = mulStrengthReduction(mul, Objects.requireNonNull(maxMunch(successor2)), constInt.value());
+            if (ret != null) {
+                return ret;
+            }
+        } else if (successor2 instanceof ConstIntNode constInt) {
+            Register ret = mulStrengthReduction(mul, Objects.requireNonNull(maxMunch(successor1)), constInt.value());
+            if (ret != null) {
+                return ret;
+            }
+        }
+        Register succ1 = maxMunch(successor1);
+        Register succ2 = maxMunch(successor2);
+        Register dest = new StandardRegister("%eax", false);    //dividend
+        assemblyCode.add(new Movel(succ1, dest));
+        assert succ2 != null;
+        Mul mull = new Mul(succ2);
+        assemblyCode.add(mull);
+
+        Register destination = getFreshRegister();
+        assemblyCode.add(new Movel(dest, destination));
+        mul.setDestination(destination);
+        return destination;
+    }
+
+    @Nullable           //ToDo
+    private Register mulStrengthReduction(MulNode mul, Register succ, int value) {
+        if (isPowerOfTwo(value) && false) {
+            //do bitwise shift
+            int amount = Integer.numberOfTrailingZeros(value);
+            assemblyCode.add(new Sal(amount, succ));
+            Register dest = getFreshRegister();
+            assemblyCode.add(new Movel(succ, dest));
+            mul.setDestination(dest);
+            return dest;
+        }
+        return null;
+    }
+
+    boolean isPowerOfTwo(int n) {
+        //https://www.baeldung.com/java-check-number-power-of-two
+        return (n != 0) && ((n & (n - 1)) == 0);
+    }
+    private Register divMaxMunch(DivNode div) {
+        Node successor1 = div.predecessors().get(0);    //oberer -> dividend
+        Node successor2 = div.predecessors().get(1);    //unterer -> divisor
+        Node sideEffect = div.predecessors().get(2); //side effect
+        maxMunch(sideEffect);
+        Register succ1 = maxMunch(successor1);
+        Register succ2 = maxMunch(successor2);
+        Register dest = new StandardRegister("%eax", false);    //dividend
+        assemblyCode.add(new Movel(succ1, dest));       //ToDo: change maxMunch to give in desired dest register
+        assert succ2 != null;
+
+        // Add runtime check for INT_MIN / -1
+        Label skipSpecialCase = new Label("skip_special_case_" + nextRegister++);
+        // Check if divisor is -1
+        assemblyCode.add(new CmplConst(-1, succ2));
+        assemblyCode.add(new Jne(skipSpecialCase));
+        // Check if dividend is INT_MIN
+        assemblyCode.add(new CmplConst(Integer.MIN_VALUE, dest));
+        assemblyCode.add(new Jne(skipSpecialCase));
+        // Throw exception by dividing by zero
+        assemblyCode.add(new MovlConst(0, succ2));
+
+        assemblyCode.add(skipSpecialCase);
+        assemblyCode.add(new MovlConst(0, new StandardRegister("%edx", false)));   //replace with xor for performance?
+        Div divl = new Div(succ2);
+        assemblyCode.add(divl);
+
+        Register destination = getFreshRegister();
+        assemblyCode.add(new Movel(dest, destination));
+        div.setDestination(destination);
+        return destination;
+    }
+
+    private Register modMaxMunch(ModNode mod) {
+        Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
+        Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
+        Register succ1 = maxMunch(successor1);      //ToDo: change maxMunch to give in desired dest register
+        Register succ2 = maxMunch(successor2);
+        Register dest = new StandardRegister("%edx", false);
+        Register dividend = new StandardRegister("%eax", false); //dividend
+        assemblyCode.add(new Movel(succ1, dividend));
+        assert succ2 != null;
+
+        // Add runtime check for INT_MIN / -1
+        Label skipSpecialCase = new Label("skip_special_case_" + nextRegister++);
+        // Check if divisor is -1
+        assemblyCode.add(new CmplConst(-1, succ2));
+        assemblyCode.add(new Jne(skipSpecialCase));
+        // Check if the dividend is INT_MIN
+        assemblyCode.add(new CmplConst(Integer.MIN_VALUE, dividend));
+        assemblyCode.add(new Jne(skipSpecialCase));
+        // Throw exception by dividing by zero
+        assemblyCode.add(new MovlConst(0, succ2));
+
+        assemblyCode.add(skipSpecialCase);
+        assemblyCode.add(new MovlConst(0, dest));   //replace with xor for performance?
+        Mod modl = new Mod(succ2);
+        assemblyCode.add(modl);
+
+        Register destination = getFreshRegister();
+        assemblyCode.add(new Movel(dest, destination));
+        mod.setDestination(destination);
+        return destination;
     }
 
     private Register getFreshRegister() {

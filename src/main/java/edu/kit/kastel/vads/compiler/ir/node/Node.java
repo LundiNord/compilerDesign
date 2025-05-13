@@ -58,6 +58,19 @@ public abstract sealed class Node permits BinaryOperationNode, Block, ConstIntNo
         this.graph.registerSuccessor(node, this);
     }
 
+    /**
+     *  Replaces a node from the predecessor list.
+     *  Has no side effects on the graph.
+     * @param oldNode
+     * @param newNode
+     */
+    public final void replacePredecessor(Node oldNode, Node newNode) {
+        if (!this.predecessors.contains(oldNode)) {
+            return;
+        }
+        this.predecessors.set(this.predecessors.indexOf(oldNode), newNode);
+    }
+
     public final Node predecessor(int idx) {
         return this.predecessors.get(idx);
     }

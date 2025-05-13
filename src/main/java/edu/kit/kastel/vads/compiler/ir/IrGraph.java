@@ -5,6 +5,7 @@ import edu.kit.kastel.vads.compiler.ir.node.Node;
 
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.SequencedSet;
 import java.util.Set;
@@ -50,4 +51,24 @@ public class IrGraph {
     public String name() {
         return name;
     }
+
+    public Set<Node> getNodes() {
+        return successors.keySet();
+    }
+
+    /**
+     * FixMe ugly code
+     * @param oldNode
+     * @param newNode
+     */
+    public void replaceNode(Node oldNode, Node newNode) {
+        SequencedSet<Node> oldSuccessors = this.successors.get(oldNode);
+        this.successors.put(newNode, oldSuccessors);
+        for (Node node : this.successors.keySet()) {
+                node.replacePredecessor(oldNode, newNode);
+        }
+        this.successors.remove(oldNode);
+        System.out.println("Replaced node " + oldNode + " with new node " + newNode);
+    }
+
 }

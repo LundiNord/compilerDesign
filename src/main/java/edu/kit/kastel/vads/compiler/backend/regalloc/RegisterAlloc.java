@@ -8,7 +8,7 @@ import java.util.*;
 
 public class RegisterAlloc {
 
-    private final List<AsInstruction> assemblyCode;
+    private List<AsInstruction> assemblyCode;
     private final InterferenceGraph interferenceGraph;
     private static final Register[] REGISTERS = {
 //           new StandardRegister("%ebx", false),
@@ -58,7 +58,7 @@ public class RegisterAlloc {
         for (AsInstruction instruction : assemblyCode) {
             if (instruction.getDestination() != null && instruction.getDestination() instanceof InfiniteRegister infiniteRegister) {
                 occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
-            }       //ToDo: laufzeit von dem hier schlimm?
+            }
             if (instruction.getSource() != null && instruction.getSource() instanceof InfiniteRegister infiniteRegister) {
                 occurrences.put(interferenceGraph.getNode(infiniteRegister).getColor(), occurrences.getOrDefault(interferenceGraph.getNode(infiniteRegister).getColor(), 0) + 1);
             }
@@ -71,7 +71,7 @@ public class RegisterAlloc {
      * Also, inits graph.
      */
     private void calculateLiveInfo() {
-        //calculate live info       //ToDo: use a better algorithm
+        //calculate live info
         for (int i = assemblyCode.size() - 1; 0 < i; i--) {
             Register dest = assemblyCode.get(i).getDestination();
             Register src = assemblyCode.get(i).getSource();
@@ -148,20 +148,24 @@ public class RegisterAlloc {
         List<Integer> topColors = occurrences.entrySet().stream()
                 .sorted(Map.Entry.<Integer, Integer>comparingByValue().reversed())
                 .map(Map.Entry::getKey).limit(REGISTERS.length).toList();
-
         for (InterferenceNode node : interferenceGraph.getVertexes()) {
             int color = node.getColor();
             if (topColors.contains(color) ) {
                 StandardRegister reg = (StandardRegister) REGISTERS[topColors.indexOf(color)];
-                regSelection.put((InfiniteRegister) node.getReg(), reg);
+                regSelection.put(node.getReg(), reg);
             } else {
                 StackRegister reg = new StackRegister(8 * color);
-                regSelection.put((InfiniteRegister) node.getReg(), reg);
+                regSelection.put(node.getReg(), reg);
             }
         }
         return regSelection;
     }
 
+    /**
+     * Replaces Memory to Memory Instructions with one move using ebx.
+     * Also removes moves with the same src and dest.
+     * @return The program without mem-to-mem instructions.
+     */
     public List<AsInstruction> removeMemToMem() {
         List<AsInstruction> newAssemblyCode = new ArrayList<>();
         StandardRegister temp = new StandardRegister("%ebx", false);
@@ -177,7 +181,14 @@ public class RegisterAlloc {
             } else {
                 newAssemblyCode.add(instruction);
             }
+            if (newAssemblyCode.getLast() instanceof Movel movel
+                && movel.getSource() != null
+                && movel.getDestination() != null
+                && Objects.equals(movel.getDestination().toString(), movel.getSource().toString())) {
+                    newAssemblyCode.removeLast();
+                }
         }
+        assemblyCode = newAssemblyCode;
         return newAssemblyCode;
     }
 

@@ -3,6 +3,7 @@ package edu.kit.kastel.vads.compiler;
 import edu.kit.kastel.vads.compiler.backend.AssemblyGenerator;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation;
+import edu.kit.kastel.vads.compiler.ir.optimize.IrOptimizer;
 import edu.kit.kastel.vads.compiler.ir.optimize.LocalValueNumbering;
 import edu.kit.kastel.vads.compiler.ir.util.YCompPrinter;
 import edu.kit.kastel.vads.compiler.lexer.Lexer;
@@ -51,7 +52,8 @@ public class Main {
                 dumpGraph(graph, tmp, "before-codegen");
             }
         }
-
+        //ToDo: do constant propagation
+        graphs = new IrOptimizer().optimize(graphs);
         String s = new AssemblyGenerator().generateCode(graphs);
         Files.writeString(Path.of(output + ".s"), s);
         runGcc(output + ".s", String.valueOf(output));
