@@ -2,6 +2,7 @@ package edu.kit.kastel.vads.compiler.ir;
 
 import edu.kit.kastel.vads.compiler.ir.node.Block;
 import edu.kit.kastel.vads.compiler.ir.node.Node;
+import edu.kit.kastel.vads.compiler.ir.node.ProjNode;
 
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
@@ -58,17 +59,27 @@ public class IrGraph {
 
     /**
      * FixMe ugly code
+     * gets called multiple time with same input.
      * @param oldNode
      * @param newNode
      */
     public void replaceNode(Node oldNode, Node newNode) {
+//        oldNode.predecessors().stream()
+//            .filter(n -> n instanceof ProjNode && ((ProjNode) n).toString().equals("SIDE_EFFECT"))
+//            .map(n -> (ProjNode) n)
+//            .findFirst().ifPresent(newNode::addPredecessor);
+        if (oldNode.predecessors().size() >=3) {
+            Node projNode = oldNode.predecessors().get(2);
+            if(projNode != null) {
+                newNode.addPredecessor(projNode);
+            }
+        }
         SequencedSet<Node> oldSuccessors = this.successors.get(oldNode);
         this.successors.put(newNode, oldSuccessors);
         for (Node node : this.successors.keySet()) {
                 node.replacePredecessor(oldNode, newNode);
         }
         this.successors.remove(oldNode);
-        //System.out.println("Replaced node " + oldNode + " with new node " + newNode);
     }
 
 }

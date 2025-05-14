@@ -28,7 +28,7 @@ public class Sal extends AsInstruction {
     }
    @Nullable
     public Register getSource() {
-        return null;
+        return destination;
     }
     @Override
     public void changeSource(Register reg) {

@@ -2,7 +2,6 @@ package edu.kit.kastel.vads.compiler.ir.optimize;
 
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.node.AddNode;
-import edu.kit.kastel.vads.compiler.ir.node.Block;
 import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode;
 import edu.kit.kastel.vads.compiler.ir.node.DivNode;
 import edu.kit.kastel.vads.compiler.ir.node.ModNode;
@@ -35,9 +34,9 @@ public class IrOptimizer {
             }
         }
         //work upwards
-        while (constEvalQueue.size() > 1) {
+        while (!constEvalQueue.isEmpty()) {
             Node node = constEvalQueue.removeFirst();
-            for (Node succ : program.successors(node)) {    //ToDo successors not set correctly on new nodes
+            for (Node succ : program.successors(node)) {
                 //go through all and search for only const children
                 if (succ.predecessors().size() < 2) {
                     continue;

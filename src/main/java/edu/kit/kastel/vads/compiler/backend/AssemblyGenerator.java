@@ -32,13 +32,11 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import static edu.kit.kastel.vads.compiler.Main.DO_STRENGTH_REDUCTION;
-import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
 
 /**
  * Entry Point for Instruction selection and register allocation.
@@ -86,10 +84,10 @@ public class AssemblyGenerator {
     public String generateCode(List<IrGraph> programs) {
         IrGraph program = programs.getFirst();
 
-        System.out.println("-----------------");
-        System.out.print(print(program));
-        System.out.println();
-        System.out.println("-----------------");
+//        System.out.println("-----------------");
+//        System.out.print(print(program));
+//        System.out.println();
+//        System.out.println("-----------------");
 
         Node endNode = program.endBlock();
         Node returnNode = endNode.predecessors().getFirst();
@@ -129,6 +127,11 @@ public class AssemblyGenerator {
                 MovlConst movlConst = new MovlConst(constIntNode.value(), dest);
                 assemblyCode.add(movlConst);
                 node.setDestination(dest);
+
+                Node sideEffect = constIntNode.predecessors().isEmpty() ? null : constIntNode.predecessors().getFirst();
+                if (sideEffect != null) {
+                    maxMunch(sideEffect);
+                }
                 return dest;
             }
             case SubNode sub -> {
@@ -239,12 +242,12 @@ public class AssemblyGenerator {
         if (isPowerOfTwo(value) && DO_STRENGTH_REDUCTION) {
             //do bitwise shift
             int amount = Integer.numberOfTrailingZeros(value);
-            assemblyCode.add(new Sal(amount, succ));
             Register dest = getFreshRegister();
             assemblyCode.add(new Movel(succ, dest));
+            assemblyCode.add(new Sal(amount, dest));
             mul.setDestination(dest);
             return dest;
-        }       //ToDo: reg alloc fails here
+        }   //ToDo: more strength reductions
         return null;
     }
 
@@ -255,7 +258,7 @@ public class AssemblyGenerator {
     private Register divMaxMunch(DivNode div) {
         Node successor1 = div.predecessors().get(0);    //oberer -> dividend
         Node successor2 = div.predecessors().get(1);    //unterer -> divisor
-        Node sideEffect = div.predecessors().get(2); //side effect
+        Node sideEffect = div.predecessors().get(2);    //side effect
         maxMunch(sideEffect);
         Register succ1 = maxMunch(successor1);
         Register succ2 = maxMunch(successor2);
@@ -288,7 +291,9 @@ public class AssemblyGenerator {
     private Register modMaxMunch(ModNode mod) {
         Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
         Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
-        Register succ1 = maxMunch(successor1);      //ToDo: change maxMunch to give in desired dest register
+        Node sideEffect = mod.predecessors().get(2); //side effect
+        maxMunch(sideEffect);
+        Register succ1 = maxMunch(successor1);
         Register succ2 = maxMunch(successor2);
         Register dest = new StandardRegister("%edx", false);
         Register dividend = new StandardRegister("%eax", false); //dividend
