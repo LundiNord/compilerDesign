@@ -6,8 +6,10 @@ import edu.kit.kastel.vads.compiler.backend.instructions.MovlConst;
 
 import java.util.*;
 
-public class RegisterAlloc {
+import static edu.kit.kastel.vads.compiler.Main.PRINT_LIVE_INFO;
 
+public class RegisterAlloc {
+    ;
     private List<AsInstruction> assemblyCode;
     private final InterferenceGraph interferenceGraph;
     private static final Register[] REGISTERS = {
@@ -32,6 +34,13 @@ public class RegisterAlloc {
 
     public List<AsInstruction> doRegAlloc() {
         calculateLiveInfo();
+        if (PRINT_LIVE_INFO) {
+            for (int i = 0; i < assemblyCode.size(); i++) {
+                AsInstruction instruction = assemblyCode.get(i);
+                System.out.print("Line " + i + ": " + instruction + " | ");
+                System.out.println("LiveIn: " + instruction.getLiveIn());
+            }
+        }
         simpleInterference();
         int maxColor = interferenceGraph.doColoring();
         //count occurrences of each register and group by coloring

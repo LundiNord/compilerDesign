@@ -37,6 +37,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import static edu.kit.kastel.vads.compiler.Main.DO_STRENGTH_REDUCTION;
+import static edu.kit.kastel.vads.compiler.Main.PRINT_IR_GRAPH;
+import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
 
 /**
  * Entry Point for Instruction selection and register allocation.
@@ -83,11 +85,12 @@ public class AssemblyGenerator {
      */
     public String generateCode(List<IrGraph> programs) {
         IrGraph program = programs.getFirst();
-
-//        System.out.println("-----------------");
-//        System.out.print(print(program));
-//        System.out.println();
-//        System.out.println("-----------------");
+        if (PRINT_IR_GRAPH) {
+            System.out.println("-----------------");
+            System.out.print(print(program));
+            System.out.println();
+            System.out.println("-----------------");
+        }
 
         Node endNode = program.endBlock();
         Node returnNode = endNode.predecessors().getFirst();
