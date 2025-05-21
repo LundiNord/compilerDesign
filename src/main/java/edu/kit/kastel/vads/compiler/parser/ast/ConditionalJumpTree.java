@@ -7,7 +7,6 @@ public record ConditionalJumpTree(ExpressionTree condition, BlockTree block, Spa
 
     @Override
     public <T, R> R accept(Visitor<T, R> visitor, T data) {
-        //return visitor.visit(this, data);
-        return null;
+        return visitor.visit(this, data);
     }
 }

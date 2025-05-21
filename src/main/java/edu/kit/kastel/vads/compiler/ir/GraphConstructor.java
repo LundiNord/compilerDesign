@@ -4,6 +4,7 @@ import edu.kit.kastel.vads.compiler.ir.node.AddNode;
 import edu.kit.kastel.vads.compiler.ir.node.Block;
 import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode;
 import edu.kit.kastel.vads.compiler.ir.node.DivNode;
+import edu.kit.kastel.vads.compiler.ir.node.JmpNode;
 import edu.kit.kastel.vads.compiler.ir.node.ModNode;
 import edu.kit.kastel.vads.compiler.ir.node.MulNode;
 import edu.kit.kastel.vads.compiler.ir.node.Node;
@@ -88,6 +89,10 @@ class GraphConstructor {
     public Phi newPhi() {
         // don't transform phi directly, it is not ready yet
         return new Phi(currentBlock());
+    }
+
+    public Node newJmp(Node ifBlock, Node condition) {
+        return this.optimizer.transform(new JmpNode(currentBlock(), ifBlock, condition));
     }
 
     public IrGraph graph() {
@@ -187,6 +192,14 @@ class GraphConstructor {
             phi.appendOperand(readSideEffect(pred.block()));
         }
         return tryRemoveTrivialPhi(phi);
+    }
+
+    public Block newBlock() {
+        return new Block(this.graph);
+    }
+
+    public void setCurrentBlock(Block block) {
+        this.currentBlock = block;
     }
 
 }

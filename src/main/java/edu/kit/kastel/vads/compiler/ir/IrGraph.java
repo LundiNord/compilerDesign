@@ -64,10 +64,6 @@ public class IrGraph {
      * @param newNode
      */
     public void replaceNode(Node oldNode, Node newNode) {
-//        oldNode.predecessors().stream()
-//            .filter(n -> n instanceof ProjNode && ((ProjNode) n).toString().equals("SIDE_EFFECT"))
-//            .map(n -> (ProjNode) n)
-//            .findFirst().ifPresent(newNode::addPredecessor);
         if (oldNode.predecessors().size() >=3) {
             Node projNode = oldNode.predecessors().get(2);
             if(projNode != null) {
@@ -81,5 +77,6 @@ public class IrGraph {
         }
         this.successors.remove(oldNode);
     }
+
 
 }

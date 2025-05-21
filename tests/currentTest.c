@@ -1,7 +1,7 @@
 int main() {
-    bool b = true;
-    if (b) {
-        return 1;
+    int a = 0;
+    if (true) {
+        a = a + 1;
     }
-    return 0;
+    return a;
 }

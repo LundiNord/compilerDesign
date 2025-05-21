@@ -10,6 +10,7 @@ import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper;
 import edu.kit.kastel.vads.compiler.parser.ast.AssignmentTree;
 import edu.kit.kastel.vads.compiler.parser.ast.BinaryOperationTree;
 import edu.kit.kastel.vads.compiler.parser.ast.BlockTree;
+import edu.kit.kastel.vads.compiler.parser.ast.ConditionalJumpTree;
 import edu.kit.kastel.vads.compiler.parser.ast.DeclarationTree;
 import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree;
@@ -135,6 +136,31 @@ public class SsaTranslation {
                     break;
                 }
             }
+            popSpan();
+            return NOT_AN_EXPRESSION;
+        }
+
+        @Override
+        public Optional<Node> visit(ConditionalJumpTree conditionalJumpTree, SsaTranslation data) {
+            pushSpan(conditionalJumpTree);
+//            Optional<Node> condition = conditionalJumpTree.condition().accept(this, data);
+//            //data.constructor.
+//            Optional<Node> ifBlock = conditionalJumpTree.block().accept(this, data);
+//            Node jmp = data.constructor.newJmp(ifBlock.get(), condition.get());
+
+            Block normalBlock = data.constructor.currentBlock();
+
+            // First, evaluate the condition
+            Node condition = conditionalJumpTree.condition().accept(this, data).orElseThrow();
+
+            Block inner = data.constructor.newBlock();
+            data.constructor.setCurrentBlock(inner);
+
+            conditionalJumpTree.block().accept(this, data);
+
+            data.constructor.sealBlock(inner);
+            data.constructor.setCurrentBlock(normalBlock);
+
             popSpan();
             return NOT_AN_EXPRESSION;
         }
