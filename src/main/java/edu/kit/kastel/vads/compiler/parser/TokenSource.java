@@ -42,6 +42,14 @@ public class TokenSource {
         this.idx++;
         return kw;
     }
+    public Keyword expectKeyword(KeywordType type1, KeywordType type2) {
+        Token token = peek();
+        if (!(token instanceof Keyword kw) || (kw.type() != type1 && kw.type() != type2)) {
+            throw new ParseException("expected keyword '" + type1 + "' or '" + type2 + "' but got " + token);
+        }
+        this.idx++;
+        return kw;
+    }
 
     public Separator expectSeparator(SeparatorType type) {
         Token token = peek();

@@ -28,7 +28,7 @@ public class Main {
     public static final boolean DO_OPTIMIZATION = false;
     public static final boolean DO_STRENGTH_REDUCTION = true;
     public static final boolean PRINT_LIVE_INFO = false;
-    public static final boolean PRINT_IR_GRAPH = false;
+    public static final boolean PRINT_IR_GRAPH = true;
 
     public static void main(String[] args) throws IOException {
         if (args.length != 2) {

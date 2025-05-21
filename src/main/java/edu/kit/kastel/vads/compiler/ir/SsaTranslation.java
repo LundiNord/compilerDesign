@@ -36,7 +36,7 @@ import java.util.function.BinaryOperator;
 /// This implementation also tracks side effect edges that can be used to avoid reordering of operations that cannot be
 /// reordered.
 ///
-/// We recommend to read the paper to better understand the mechanics implemented here.
+/// We recommend reading the paper to better understand the mechanics implemented here.
 public class SsaTranslation {
     private final FunctionTree function;
     private final GraphConstructor constructor;
@@ -226,6 +226,5 @@ public class SsaTranslation {
             return data.constructor.newResultProj(divMod);
         }
     }
-
 
 }

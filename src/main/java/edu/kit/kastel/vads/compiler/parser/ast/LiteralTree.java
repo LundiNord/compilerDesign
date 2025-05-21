@@ -1,10 +1,7 @@
 package edu.kit.kastel.vads.compiler.parser.ast;
 
 import edu.kit.kastel.vads.compiler.Span;
-import edu.kit.kastel.vads.compiler.parser.ParseException;
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor;
-import edu.kit.kastel.vads.compiler.semantic.SemanticException;
-import java.util.Optional;
 import java.util.OptionalLong;
 
 public record LiteralTree(String value, int base, Span span) implements ExpressionTree {
@@ -18,8 +15,23 @@ public record LiteralTree(String value, int base, Span span) implements Expressi
         return switch (base) {
             case 16 -> parseHex(end);
             case 10 -> parseDec(end);
+            case 0 -> parseBool(end);
             default -> throw new IllegalArgumentException("unexpected base " + base);
         };
+    }
+
+    private OptionalLong parseBool(int end) {
+        long l;
+        try {
+            if (value.equals("true")) {
+                l = 1;
+            } else {
+                l = 0;
+            }
+        } catch (NumberFormatException _) {
+            return OptionalLong.empty();
+        }
+        return OptionalLong.of(l);
     }
 
     private OptionalLong parseDec(int end) {

@@ -1,5 +1,6 @@
 package edu.kit.kastel.vads.compiler.parser;
 
+import edu.kit.kastel.vads.compiler.lexer.BooleanLiteral;
 import edu.kit.kastel.vads.compiler.lexer.Identifier;
 import edu.kit.kastel.vads.compiler.lexer.Keyword;
 import edu.kit.kastel.vads.compiler.lexer.KeywordType;
@@ -13,6 +14,7 @@ import edu.kit.kastel.vads.compiler.lexer.Token;
 import edu.kit.kastel.vads.compiler.parser.ast.AssignmentTree;
 import edu.kit.kastel.vads.compiler.parser.ast.BinaryOperationTree;
 import edu.kit.kastel.vads.compiler.parser.ast.BlockTree;
+import edu.kit.kastel.vads.compiler.parser.ast.ConditionalJumpTree;
 import edu.kit.kastel.vads.compiler.parser.ast.DeclarationTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ExpressionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree;
@@ -75,10 +77,13 @@ public class Parser {
 
     private StatementTree parseStatement() {
         StatementTree statement;
-        if (this.tokenSource.peek().isKeyword(KeywordType.INT)) {
+        if (this.tokenSource.peek().isKeyword(KeywordType.INT) || this.tokenSource.peek().isKeyword(KeywordType.BOOL)) {
             statement = parseDeclaration();
         } else if (this.tokenSource.peek().isKeyword(KeywordType.RETURN)) {
             statement = parseReturn();
+        } else if (this.tokenSource.peek().isKeyword(KeywordType.IF)) {
+            statement = parseIf();
+            return statement;
         } else {
             statement = parseSimple();
         }
@@ -87,14 +92,20 @@ public class Parser {
     }
 
     private StatementTree parseDeclaration() {
-        Keyword type = this.tokenSource.expectKeyword(KeywordType.INT);
+        Keyword type = this.tokenSource.expectKeyword(KeywordType.INT, KeywordType.BOOL);
         Identifier ident = this.tokenSource.expectIdentifier();
         ExpressionTree expr = null;
         if (this.tokenSource.peek().isOperator(OperatorType.ASSIGN)) {
             this.tokenSource.expectOperator(OperatorType.ASSIGN);
             expr = parseExpression();
         }
-        return new DeclarationTree(new TypeTree(BasicType.INT, type.span()), name(ident), expr);
+        if (type.type() == KeywordType.INT) {
+            return new DeclarationTree(new TypeTree(BasicType.INT, type.span()), name(ident), expr);
+        } else if (type.type() == KeywordType.BOOL) {
+            return new DeclarationTree(new TypeTree(BasicType.BOOLEAN, type.span()), name(ident), expr);
+        } else {
+            throw new ParseException("expected int or bool but got " + type);
+        }
     }
 
     private StatementTree parseSimple() {
@@ -180,6 +191,10 @@ public class Parser {
                 this.tokenSource.consume();
                 yield new LiteralTree(value, base, span);
             }
+            case BooleanLiteral(boolean value, Span span) -> {
+                this.tokenSource.consume();
+                yield new LiteralTree(String.valueOf(value), 0, span);
+            }
             case Token t -> throw new ParseException("invalid factor " + t);
         };
     }
@@ -187,4 +202,14 @@ public class Parser {
     private static NameTree name(Identifier ident) {
         return new NameTree(Name.forIdentifier(ident), ident.span());
     }
+
+    private StatementTree parseIf() {
+        this.tokenSource.consume();
+        this.tokenSource.expectSeparator(SeparatorType.PAREN_OPEN);
+        ExpressionTree expression = parseExpression();
+        this.tokenSource.expectSeparator(SeparatorType.PAREN_CLOSE);
+        BlockTree block = parseBlock();
+        return new ConditionalJumpTree(expression, block, expression.span().merge(block.span()));
+    }
+
 }

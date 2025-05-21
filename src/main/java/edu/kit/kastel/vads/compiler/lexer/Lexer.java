@@ -96,7 +96,7 @@ public class Lexer {
                         this.pos += 2;
                         continue;
                     }
-                    // are we in a multi line comment of any depth?
+                    // are we in a multi-line comment of any depth?
                     if (multiLineCommentDepth > 0) {
                         this.pos++;
                         continue;
@@ -138,6 +138,9 @@ public class Lexer {
         }
         String id = this.source.substring(this.pos, this.pos + off);
         // This is a naive solution. Using a better data structure (hashmap, trie) likely performs better.
+        if (id.equals("true") || id.equals("false")) {
+            return new BooleanLiteral(id.equals("true"), buildSpan(off));
+        }
         for (KeywordType value : KeywordType.values()) {
             if (value.keyword().equals(id)) {
                 return new Keyword(value, buildSpan(off));
