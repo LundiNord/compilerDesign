@@ -36,7 +36,7 @@ public class IrOptimizer {
         //work upwards
         while (!constEvalQueue.isEmpty()) {
             Node node = constEvalQueue.removeFirst();
-            for (Node succ : program.successors(node)) {
+            for (Node succ : node.successors()) {
                 //go through all and search for only const children
                 if (succ.predecessors().size() < 2) {
                     continue;
@@ -49,19 +49,19 @@ public class IrOptimizer {
                    switch (succ) {
                        case AddNode addNode -> {
                            int result = constOne.value() + constTwo.value();
-                           ConstIntNode newNode = new ConstIntNode(succ.block(), result);
+                           ConstIntNode newNode = new ConstIntNode(result);
                            program.replaceNode(succ, newNode);
                            constEvalQueue.add(newNode);
                        }
                        case SubNode subNode -> {
                            int result = constOne.value() - constTwo.value();
-                           ConstIntNode newNode = new ConstIntNode(succ.block(), result);
+                           ConstIntNode newNode = new ConstIntNode(result);
                            program.replaceNode(succ, newNode);
                            constEvalQueue.add(newNode);
                        }
                        case MulNode mulNode -> {
                            int result = constOne.value() * constTwo.value();
-                           ConstIntNode newNode = new ConstIntNode(succ.block(), result);
+                           ConstIntNode newNode = new ConstIntNode(result);
                            program.replaceNode(succ, newNode);
                            constEvalQueue.add(newNode);
                        }
@@ -70,7 +70,7 @@ public class IrOptimizer {
                                continue;
                            }
                            int result = constOne.value() % constTwo.value();
-                           ConstIntNode newNode = new ConstIntNode(succ.block(), result);
+                           ConstIntNode newNode = new ConstIntNode(result);
                            program.replaceNode(succ, newNode);
                            constEvalQueue.add(newNode);
                        }
@@ -79,7 +79,7 @@ public class IrOptimizer {
                                continue;        //ToDo: only place /0 in end programm
                            }
                            int result = constOne.value() / constTwo.value();
-                           ConstIntNode newNode = new ConstIntNode(succ.block(), result);
+                           ConstIntNode newNode = new ConstIntNode(result);
                            program.replaceNode(succ, newNode);
                            constEvalQueue.add(newNode);
                        }

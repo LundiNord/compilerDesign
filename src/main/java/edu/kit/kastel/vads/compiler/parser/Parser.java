@@ -148,8 +148,7 @@ public class Parser {
     private ExpressionTree parseExpression() {
         ExpressionTree lhs = parseTerm();
         while (true) {
-            if (this.tokenSource.peek() instanceof Operator(var type, _)
-                && (type == OperatorType.PLUS || type == OperatorType.MINUS)) {
+            if (this.tokenSource.peek() instanceof Operator(var type, _) && (type == OperatorType.PLUS || type == OperatorType.MINUS || type == OperatorType.LEFT_SHIFT || type == OperatorType.RIGHT_SHIFT)) {
                 this.tokenSource.consume();
                 lhs = new BinaryOperationTree(lhs, parseTerm(), type);
             } else {

@@ -20,18 +20,18 @@ public class ConstantFolding implements Optimizer {
                 int cR = ((ConstIntNode) node.predecessor(BinaryOperationNode.RIGHT)).value();
 
                 return switch(node) {
-                    case AddNode _ -> new ConstIntNode(node.block(), cL + cR);
-                    case SubNode _ -> new ConstIntNode(node.block(), cL - cR);
-                    case MulNode _ -> new ConstIntNode(node.block(), cL * cR);
+                    case AddNode _ -> new ConstIntNode(cL + cR);
+                    case SubNode _ -> new ConstIntNode(cL - cR);
+                    case MulNode _ -> new ConstIntNode(cL * cR);
                     case DivNode _ -> {
                         if (cR == 0) yield node;
                         if (cL == Integer.MIN_VALUE && cR == -1) yield node;
-                        yield new ConstIntNode(node.block(), cL / cR);
+                        yield new ConstIntNode(cL / cR);
                     }
                     case ModNode _ -> {
                         if (cR == 0) yield node;
                         if (cL == Integer.MIN_VALUE && cR == -1) yield node;
-                        yield new ConstIntNode(node.block(), cL % cR);
+                        yield new ConstIntNode(cL % cR);
                     }
                     default -> node;
                 };
