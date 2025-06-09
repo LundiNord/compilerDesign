@@ -16,15 +16,15 @@ import edu.kit.kastel.vads.compiler.backend.regalloc.InfiniteRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import edu.kit.kastel.vads.compiler.backend.regalloc.RegisterAlloc;
 import edu.kit.kastel.vads.compiler.backend.regalloc.StandardRegister;
+import edu.kit.kastel.vads.compiler.ir.IfNode;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.node.AddNode;
-import edu.kit.kastel.vads.compiler.ir.node.Block;
 import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode;
 import edu.kit.kastel.vads.compiler.ir.node.DivNode;
 import edu.kit.kastel.vads.compiler.ir.node.ModNode;
 import edu.kit.kastel.vads.compiler.ir.node.MulNode;
 import edu.kit.kastel.vads.compiler.ir.node.Node;
-import edu.kit.kastel.vads.compiler.ir.node.ProjNode;
+import edu.kit.kastel.vads.compiler.ir.node.PhiNode;
 import edu.kit.kastel.vads.compiler.ir.node.ReturnNode;
 import edu.kit.kastel.vads.compiler.ir.node.StartNode;
 import edu.kit.kastel.vads.compiler.ir.node.SubNode;
@@ -38,7 +38,7 @@ import java.util.Objects;
 
 import static edu.kit.kastel.vads.compiler.Main.DO_STRENGTH_REDUCTION;
 import static edu.kit.kastel.vads.compiler.Main.PRINT_IR_GRAPH;
-import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
+//import static edu.kit.kastel.vads.compiler.ir.util.GraphVizPrinter.print;
 
 /**
  * Entry Point for Instruction selection and register allocation.
@@ -87,13 +87,12 @@ public class AssemblyGenerator {
         IrGraph program = programs.getFirst();
         if (PRINT_IR_GRAPH) {
             System.out.println("-----------------");
-            System.out.print(print(program));
+            //System.out.print(print(program));
             System.out.println();
             System.out.println("-----------------");
         }
 
-        Node endNode = program.endBlock();
-        Node returnNode = endNode.predecessors().getFirst();
+        Node returnNode = program.endNode();
         maxMunch(returnNode);
 
         RegisterAlloc regAlloc = new RegisterAlloc(assemblyCode);
@@ -175,10 +174,10 @@ public class AssemblyGenerator {
             case ReturnNode returnNode -> {
                 Register succ = null;
                 for (Node predecessor : returnNode.predecessors()) {
-                    if (predecessor.getClass() == ProjNode.class && ((ProjNode) predecessor).info().equals("SIDE_EFFECT")) {
-                        maxMunch(predecessor); //calculate value and don't store it
-                        continue;
-                    }
+//                    if (predecessor.getClass() == ProjNode.class && ((ProjNode) predecessor).info().equals("SIDE_EFFECT")) {
+//                        maxMunch(predecessor); //calculate value and don't store it
+//                        continue;
+//                    }
                     succ = maxMunch(predecessor);
                 }
                 assert succ != null;
@@ -187,25 +186,48 @@ public class AssemblyGenerator {
                 assemblyCode.add(new Movel(succ, new StandardRegister("%eax", false)));
                 return null;
             }
-            case ProjNode projNode -> {
-                if (projNode.info().equals("RESULT")) {
-                    Register reg = maxMunch(projNode.predecessors().getFirst());
-                    assert reg != null;
-                    node.setDestination(reg);
-                    return reg;
-                } else if (projNode.info().equals("SIDE_EFFECT")) {
-                    // do nothing
-                    Node successor1 = projNode.predecessors().getFirst();
-                    Register reg = maxMunch(successor1);    //bei START hier null
-                    node.setDestination(reg);
-                    return null;
-                } else {
-                   throw new IllegalStateException("Unexpected value: " + projNode.info());
-                }
-            }
-            case Block _, StartNode _ -> {
+//            case ProjNode projNode -> {
+//                if (projNode.info().equals("RESULT")) {
+//                    Register reg = maxMunch(projNode.predecessors().getFirst());
+//                    assert reg != null;
+//                    node.setDestination(reg);
+//                    return reg;
+//                } else if (projNode.info().equals("SIDE_EFFECT")) {
+//                    // do nothing
+//                    Node successor1 = projNode.predecessors().getFirst();
+//                    Register reg = maxMunch(successor1);    //bei START hier null
+//                    node.setDestination(reg);
+//                    return null;
+//                } else {
+//                   throw new IllegalStateException("Unexpected value: " + projNode.info());
+//                }
+//            }
+            case StartNode _ -> {
                 // do nothing, skip line break
                 return null;
+            }
+            case PhiNode phiNode -> {
+                Node successor1 = phiNode.predecessors().get(0);
+                Node successor2 = phiNode.predecessors().get(1);
+                Node condition = phiNode.predecessors().get(2);
+
+                Register succ1 = maxMunch(successor1);
+                Register result = getFreshRegister();
+                assemblyCode.add(new Movel(succ1, result));
+
+                Register condRes = maxMunch(condition);
+                Label skipCond = new Label("skipCond" + nextRegister++);
+                assert condRes != null;
+                assemblyCode.add(new CmplConst(1, condRes));
+                assemblyCode.add(new Jne(skipCond));
+                Register succ2 = maxMunch(successor2);
+                assemblyCode.add(new Movel(succ2, result));
+                assemblyCode.add(skipCond);
+                return result;
+            }
+            case IfNode ifNode -> {
+                Node successor1 = ifNode.predecessors().getFirst();
+                return maxMunch(successor1);
             }
             default -> throw new IllegalStateException("Unexpected value: " + node);
         }
@@ -261,8 +283,8 @@ public class AssemblyGenerator {
     private Register divMaxMunch(DivNode div) {
         Node successor1 = div.predecessors().get(0);    //oberer -> dividend
         Node successor2 = div.predecessors().get(1);    //unterer -> divisor
-        Node sideEffect = div.predecessors().get(2);    //side effect
-        maxMunch(sideEffect);
+//        Node sideEffect = div.predecessors().get(2);    //side effect
+//        maxMunch(sideEffect);
         Register succ1 = maxMunch(successor1);
         Register succ2 = maxMunch(successor2);
         Register dest = new StandardRegister("%eax", false);    //dividend
@@ -274,7 +296,7 @@ public class AssemblyGenerator {
         // Check if divisor is -1
         assemblyCode.add(new CmplConst(-1, succ2));
         assemblyCode.add(new Jne(skipSpecialCase));
-        // Check if dividend is INT_MIN
+        // Check if the dividend is INT_MIN
         assemblyCode.add(new CmplConst(Integer.MIN_VALUE, dest));
         assemblyCode.add(new Jne(skipSpecialCase));
         // Throw exception by dividing by zero
@@ -294,8 +316,8 @@ public class AssemblyGenerator {
     private Register modMaxMunch(ModNode mod) {
         Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
         Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
-        Node sideEffect = mod.predecessors().get(2); //side effect
-        maxMunch(sideEffect);
+//        Node sideEffect = mod.predecessors().get(2); //side effect
+//        maxMunch(sideEffect);
         Register succ1 = maxMunch(successor1);
         Register succ2 = maxMunch(successor2);
         Register dest = new StandardRegister("%edx", false);

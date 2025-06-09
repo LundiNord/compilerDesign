@@ -26,6 +26,10 @@ public record Operator(OperatorType type, Span span) implements Token {
         ASSIGN_MOD("%="),
         MOD("%"),
         ASSIGN("="),
+        LEFT_SHIFT("<<"),
+        LEFT_SHIFT_ASSIGN("<<="),
+        RIGHT_SHIFT(">>"),
+        RIGHT_SHIFT_ASSIGN(">>="),
         ;
 
         private final String value;

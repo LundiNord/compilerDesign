@@ -76,6 +76,7 @@ public class MainTest {
         }
         System.out.println("gcc programm output:");
         System.out.println(output);
+        System.out.println(exitValue);
         System.out.println("-----------------");
         return exitValue;
     }

@@ -5,7 +5,6 @@ import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.SsaTranslation;
 import edu.kit.kastel.vads.compiler.ir.optimize.IrOptimizer;
 import edu.kit.kastel.vads.compiler.ir.optimize.LocalValueNumbering;
-import edu.kit.kastel.vads.compiler.ir.util.YCompPrinter;
 import edu.kit.kastel.vads.compiler.lexer.Lexer;
 import edu.kit.kastel.vads.compiler.parser.ParseException;
 import edu.kit.kastel.vads.compiler.parser.Parser;
@@ -26,9 +25,9 @@ import java.util.List;
 public class Main {
 
     public static final boolean DO_OPTIMIZATION = false;
-    public static final boolean DO_STRENGTH_REDUCTION = true;
+    public static final boolean DO_STRENGTH_REDUCTION = false;
     public static final boolean PRINT_LIVE_INFO = false;
-    public static final boolean PRINT_IR_GRAPH = true;
+    public static final boolean PRINT_IR_GRAPH = false;
 
     public static void main(String[] args) throws IOException {
         if (args.length != 2) {
@@ -99,10 +98,10 @@ public class Main {
     }
 
     private static void dumpGraph(IrGraph graph, Path path, String key) throws IOException {
-        Files.writeString(
-            path.resolve(graph.name() + "-" + key + ".vcg"),
-            YCompPrinter.print(graph)
-        );
+//        Files.writeString(
+//            path.resolve(graph.name() + "-" + key + ".vcg"),
+//            YCompPrinter.print(graph)
+//        );
     }
 
 }

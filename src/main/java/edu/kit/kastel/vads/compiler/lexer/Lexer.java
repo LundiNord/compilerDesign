@@ -38,6 +38,20 @@ public class Lexer {
             case ';' -> separator(SeparatorType.SEMICOLON);
             case '-' -> singleOrAssign(OperatorType.MINUS, OperatorType.ASSIGN_MINUS);
             case '+' -> singleOrAssign(OperatorType.PLUS, OperatorType.ASSIGN_PLUS);
+            case '<' -> {
+                if (hasMore(1) && peek(1) == '<') {
+                    this.pos++;
+                    yield  singleOrAssign(OperatorType.LEFT_SHIFT, OperatorType.LEFT_SHIFT_ASSIGN);
+                }
+                yield new ErrorToken(String.valueOf(peek()), buildSpan(1));
+            }
+            case '>' -> {
+                if (hasMore(1) && peek(1) == '>') {
+                    this.pos++;
+                    yield singleOrAssign(OperatorType.RIGHT_SHIFT, OperatorType.RIGHT_SHIFT_ASSIGN);
+                }
+                yield new ErrorToken(String.valueOf(peek()), buildSpan(1));
+            }
             case '*' -> singleOrAssign(OperatorType.MUL, OperatorType.ASSIGN_MUL);
             case '/' -> singleOrAssign(OperatorType.DIV, OperatorType.ASSIGN_DIV);
             case '%' -> singleOrAssign(OperatorType.MOD, OperatorType.ASSIGN_MOD);
