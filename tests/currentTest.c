@@ -1,3 +1,6 @@
 int main() {
-  return 1 << 42;
+    {
+        int a = 0;
+    }
+    return a;
 }

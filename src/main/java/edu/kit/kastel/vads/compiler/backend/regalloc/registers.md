@@ -3,7 +3,7 @@ source: https://wiki.osdev.org/CPU_Registers_x86-64
 
 EAX     Accumulator                                     Reserved for div and return
 EBX     Base                                            Used for temp data from stack
-ECX     Counter                                         2
+ECX     Counter                                         Reserved for shift
 EDX     Data                                            Reserved for div
 ESI     Source index for string operations              3
 EDI     Destination index for string operations         4

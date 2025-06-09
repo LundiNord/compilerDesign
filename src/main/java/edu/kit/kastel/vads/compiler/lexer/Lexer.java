@@ -41,21 +41,38 @@ public class Lexer {
             case '<' -> {
                 if (hasMore(1) && peek(1) == '<') {
                     this.pos++;
-                    yield  singleOrAssign(OperatorType.LEFT_SHIFT, OperatorType.LEFT_SHIFT_ASSIGN);
+                    yield singleOrAssign(OperatorType.LEFT_SHIFT, OperatorType.LEFT_SHIFT_ASSIGN);
                 }
-                yield new ErrorToken(String.valueOf(peek()), buildSpan(1));
+                yield singleOrAssign(OperatorType.LESS_THAN, OperatorType.LESS_THAN_OR_EQUAL);
             }
             case '>' -> {
                 if (hasMore(1) && peek(1) == '>') {
                     this.pos++;
                     yield singleOrAssign(OperatorType.RIGHT_SHIFT, OperatorType.RIGHT_SHIFT_ASSIGN);
                 }
-                yield new ErrorToken(String.valueOf(peek()), buildSpan(1));
+                yield singleOrAssign(OperatorType.GREATER_THAN, OperatorType.GREATER_THAN_OR_EQUAL);
             }
             case '*' -> singleOrAssign(OperatorType.MUL, OperatorType.ASSIGN_MUL);
             case '/' -> singleOrAssign(OperatorType.DIV, OperatorType.ASSIGN_DIV);
             case '%' -> singleOrAssign(OperatorType.MOD, OperatorType.ASSIGN_MOD);
             case '=' -> new Operator(OperatorType.ASSIGN, buildSpan(1));
+            case '!' -> new Operator(OperatorType.LOGICAL_NOT, buildSpan(1));
+            case '~' -> new Operator(OperatorType.BITWISE_NOT, buildSpan(1));
+            case '^' -> singleOrAssign(OperatorType.BITWISE_EXCLUSIVE_OR, OperatorType.BITWISE_EXCLUSIVE_OR_ASSIGN);
+            case '|' -> {
+                if (hasMore(1) && peek(1) == '|') {
+                    this.pos++;
+                    yield new Operator(OperatorType.LOGICAL_OR, buildSpan(1));
+                }
+                yield singleOrAssign(OperatorType.BITWISE_OR, OperatorType.BITWISE_OR_ASSIGN);
+            }
+            case '&' -> {
+                if (hasMore(1) && peek(1) == '&') {
+                    this.pos++;
+                    yield new Operator(OperatorType.LOGICAL_AND, buildSpan(1));
+                }
+                yield singleOrAssign(OperatorType.BITWISE_AND, OperatorType.BITWISE_AND_ASSIGN);
+            }
             default -> {
                 if (isIdentifierChar(peek())) {
                     if (isNumeric(peek())) {

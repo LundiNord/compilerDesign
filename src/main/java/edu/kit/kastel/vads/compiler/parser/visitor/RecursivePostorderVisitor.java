@@ -9,12 +9,14 @@ import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LValueIdentTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LiteralTree;
+import edu.kit.kastel.vads.compiler.parser.ast.LoopCtrlTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NameTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NegateTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ReturnTree;
 import edu.kit.kastel.vads.compiler.parser.ast.StatementTree;
 import edu.kit.kastel.vads.compiler.parser.ast.TypeTree;
+import edu.kit.kastel.vads.compiler.parser.ast.WhileTree;
 
 /// A visitor that traverses a tree in postorder
 /// @param <T> a type for additional data
@@ -131,6 +133,18 @@ public class RecursivePostorderVisitor<T, R> implements Visitor<T, R> {
 
     @Override
     public R visit(ConditionalJumpTree conditionalJumpTree, T data) {
+        //Fixme
+        return null;
+    }
+
+    @Override
+    public R visit(WhileTree whileTree, T data) {
+        //Fixme
+        return null;
+    }
+
+    @Override
+    public R visit(LoopCtrlTree loopCtrlTree, T data) {
         //Fixme
         return null;
     }

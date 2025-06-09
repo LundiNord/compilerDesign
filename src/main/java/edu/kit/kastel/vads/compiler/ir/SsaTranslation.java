@@ -1,16 +1,22 @@
 package edu.kit.kastel.vads.compiler.ir;
 
 import edu.kit.kastel.vads.compiler.ir.node.AddNode;
+import edu.kit.kastel.vads.compiler.ir.node.BitwiseCompNode;
+import edu.kit.kastel.vads.compiler.ir.node.CompNode;
 import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode;
 import edu.kit.kastel.vads.compiler.ir.node.DivNode;
+import edu.kit.kastel.vads.compiler.ir.node.EndNode;
+import edu.kit.kastel.vads.compiler.ir.node.IfNode;
 import edu.kit.kastel.vads.compiler.ir.node.ModNode;
 import edu.kit.kastel.vads.compiler.ir.node.MulNode;
 import edu.kit.kastel.vads.compiler.ir.node.Node;
 import edu.kit.kastel.vads.compiler.ir.node.PhiNode;
 import edu.kit.kastel.vads.compiler.ir.node.ReturnNode;
 import edu.kit.kastel.vads.compiler.ir.node.Scope;
+import edu.kit.kastel.vads.compiler.ir.node.ShiftNode;
 import edu.kit.kastel.vads.compiler.ir.node.StartNode;
 import edu.kit.kastel.vads.compiler.ir.node.SubNode;
+import edu.kit.kastel.vads.compiler.ir.node.WhileNode;
 import edu.kit.kastel.vads.compiler.ir.optimize.Optimizer;
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo;
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper;
@@ -23,6 +29,7 @@ import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LValueIdentTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LiteralTree;
+import edu.kit.kastel.vads.compiler.parser.ast.LoopCtrlTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NameTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NegateTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree;
@@ -30,6 +37,7 @@ import edu.kit.kastel.vads.compiler.parser.ast.ReturnTree;
 import edu.kit.kastel.vads.compiler.parser.ast.StatementTree;
 import edu.kit.kastel.vads.compiler.parser.ast.Tree;
 import edu.kit.kastel.vads.compiler.parser.ast.TypeTree;
+import edu.kit.kastel.vads.compiler.parser.ast.WhileTree;
 import edu.kit.kastel.vads.compiler.parser.symbol.Name;
 import edu.kit.kastel.vads.compiler.parser.visitor.Visitor;
 import org.jspecify.annotations.Nullable;
@@ -52,22 +60,23 @@ public class SsaTranslation {
     private final FunctionTree function;
     @Nullable
     protected Node startNode;
-    @Nullable
-    protected ReturnNode returnNode;
+    protected EndNode endNode;
     private final ArrayDeque<Scope> scopes;
+    @Nullable
+    protected Node currentCtrlNode;
 
     public SsaTranslation(FunctionTree function, Optimizer optimizer) {
         this.function = function;
         this.scopes = new ArrayDeque<>();
         this.scopes.add(new Scope());
+        this.endNode = new EndNode();
     }
 
     public IrGraph translate() {
         var visitor = new SsaTranslationVisitor();
         this.function.accept(visitor, this);
         assert startNode != null;
-        assert returnNode != null;
-        return new IrGraph(function.name().toString(), startNode, returnNode);
+        return new IrGraph(function.name().toString(), startNode, endNode);
     }
 
     private void writeVariable(Name variable, Node value) {
@@ -111,6 +120,8 @@ public class SsaTranslation {
                 case ASSIGN_MUL -> MulNode::new;
                 case ASSIGN_DIV -> (lhs, rhs) -> projResultDivMod(data, new DivNode(lhs, rhs));
                 case ASSIGN_MOD -> (lhs, rhs) -> projResultDivMod(data, new ModNode(lhs, rhs));
+                case LEFT_SHIFT_ASSIGN -> (lhs, rhs) -> new ShiftNode(lhs, rhs, ShiftNode.Shift.LEFT);
+                case RIGHT_SHIFT_ASSIGN -> (lhs, rhs) -> new ShiftNode(lhs, rhs, ShiftNode.Shift.RIGHT);
                 case ASSIGN -> null;
                 default ->
                     throw new IllegalArgumentException("not an assignment operator " + assignmentTree.operator());
@@ -140,6 +151,15 @@ public class SsaTranslation {
                 case MUL -> new MulNode(lhs, rhs);
                 case DIV -> projResultDivMod(data, new DivNode(lhs, rhs));
                 case MOD -> projResultDivMod(data, new ModNode(lhs, rhs));
+                case RIGHT_SHIFT -> new ShiftNode(lhs, rhs, ShiftNode.Shift.RIGHT);
+                case LEFT_SHIFT  -> new ShiftNode(lhs, rhs, ShiftNode.Shift.LEFT);
+                case BITWISE_EXCLUSIVE_OR -> new BitwiseCompNode(lhs, rhs, BitwiseCompNode.BitwiseCompType.XOR);
+                case BITWISE_AND -> new BitwiseCompNode(lhs, rhs, BitwiseCompNode.BitwiseCompType.AND);
+                case BITWISE_OR -> new BitwiseCompNode(lhs, rhs, BitwiseCompNode.BitwiseCompType.OR);
+                case LESS_THAN -> new CompNode(lhs, rhs, CompNode.CompType.LESS_THAN);
+                case LESS_THAN_OR_EQUAL -> new CompNode(lhs, rhs, CompNode.CompType.LESS_THAN_OR_EQUALS);
+                case GREATER_THAN -> new CompNode(lhs, rhs, CompNode.CompType.GREATER_THAN);
+                case GREATER_THAN_OR_EQUAL -> new CompNode(lhs, rhs, CompNode.CompType.GREATER_THAN_OR_EQUALS);
                 default ->
                     throw new IllegalArgumentException("not a binary expression operator " + binaryOperationTree.operatorType());
             };
@@ -151,6 +171,9 @@ public class SsaTranslation {
         public Optional<Node> visit(BlockTree blockTree, SsaTranslation data) {
             pushSpan(blockTree);
             for (StatementTree statement : blockTree.statements()) {
+                if (statement instanceof LoopCtrlTree loopCtrlTree && loopCtrlTree.bbreak()) {
+                    break;  //ToDo
+                }
                 statement.accept(this, data);
                 // skip everything after a return in a block
                 if (statement instanceof ReturnTree) {
@@ -177,11 +200,54 @@ public class SsaTranslation {
                 Node value = blockScope.getVariable(name);
                 Node oldValue = data.readVariable(name);
                 assert value != null;
+                assert oldValue != null;
                 Node phiNode = new PhiNode(oldValue, value, ifNode);
-                data.scopes.getLast().replaceVariable(name, phiNode);  //ToDo: in nested probaply wrong
+                data.scopes.getLast().replaceVariable(name, phiNode);  //ToDo: in nested probably wrong
             }
             //add merge node
             //Node mergeNode = new RegionNode(ifNode, block);
+
+            popSpan();
+            return NOT_AN_EXPRESSION;
+        }
+
+        @Override
+        public Optional<Node> visit(WhileTree whileTree, SsaTranslation data) {
+            pushSpan(whileTree);
+            //ToDo
+            if (whileTree.condition() == null) {    //for loop
+                //ToDo
+                return NOT_AN_EXPRESSION;
+            }
+
+            Node condition = whileTree.condition().accept(this, data).orElseThrow();
+            Node whileNode = new WhileNode(condition);
+            Node savedCtrlNode = data.currentCtrlNode;
+            data.currentCtrlNode = whileNode;
+            data.scopes.add(new Scope());
+            whileTree.block().accept(this, data);
+
+            Scope blockScope = data.scopes.getLast();
+            data.scopes.removeLast();
+            for (Name name : blockScope.getNames()) {
+                Node value = blockScope.getVariable(name);
+                Node oldValue = data.readVariable(name);
+                assert value != null;
+                assert oldValue != null;
+                Node phiNode = new PhiNode(oldValue, value, whileNode);
+                data.scopes.getLast().replaceVariable(name, phiNode);  //ToDo: in nested probably wrong
+            }
+
+            data.currentCtrlNode = savedCtrlNode;
+            popSpan();
+            return NOT_AN_EXPRESSION;
+        }
+
+        @Override
+        public Optional<Node> visit(LoopCtrlTree loopCtrlTree, SsaTranslation data) {
+            pushSpan(loopCtrlTree);
+            //ToDo
+
 
             popSpan();
             return NOT_AN_EXPRESSION;
@@ -253,7 +319,8 @@ public class SsaTranslation {
             pushSpan(returnTree);
             Node node = returnTree.expression().accept(this, data).orElseThrow();
             ReturnNode ret = new ReturnNode(node);
-            data.returnNode = ret;
+            ret.addPredecessor(data.currentCtrlNode);
+            data.endNode.addPredecessor(ret);
             popSpan();
             return NOT_AN_EXPRESSION;
         }

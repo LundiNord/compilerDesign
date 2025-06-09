@@ -9,11 +9,13 @@ import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LValueIdentTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LiteralTree;
+import edu.kit.kastel.vads.compiler.parser.ast.LoopCtrlTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NameTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NegateTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ReturnTree;
 import edu.kit.kastel.vads.compiler.parser.ast.TypeTree;
+import edu.kit.kastel.vads.compiler.parser.ast.WhileTree;
 
 /// A visitor that does nothing and returns [Unit#INSTANCE] by default.
 /// This can be used to implement operations only for specific tree types.
@@ -88,4 +90,15 @@ public interface NoOpVisitor<T> extends Visitor<T, Unit> {
     default Unit visit(ConditionalJumpTree jumpTree, T data) {
         return Unit.INSTANCE;
     }
+
+    @Override
+    default Unit visit(WhileTree whileTree, T data) {
+        return Unit.INSTANCE;
+    }
+
+    @Override
+    default Unit visit(LoopCtrlTree loopCtrlTree, T data) {
+        return Unit.INSTANCE;
+    }
+
 }

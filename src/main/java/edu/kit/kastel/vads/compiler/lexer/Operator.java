@@ -30,7 +30,23 @@ public record Operator(OperatorType type, Span span) implements Token {
         LEFT_SHIFT_ASSIGN("<<="),
         RIGHT_SHIFT(">>"),
         RIGHT_SHIFT_ASSIGN(">>="),
-        ;
+        GREATER_THAN(">"),
+        GREATER_THAN_OR_EQUAL(">="),
+        LESS_THAN("<"),
+        LESS_THAN_OR_EQUAL("<="),
+        EQUALS("=="),
+        NOT_EQUALS("!="),
+        LOGICAL_NOT("!"),
+        BITWISE_NOT("~"),
+        //UNARY_MINUS("-"),
+        BITWISE_AND("&"),
+        BITWISE_EXCLUSIVE_OR("^"),
+        BITWISE_EXCLUSIVE_OR_ASSIGN("^="),
+        BITWISE_OR("|"),
+        LOGICAL_AND("&&"),
+        LOGICAL_OR("||"),
+        BITWISE_OR_ASSIGN("|="),
+        BITWISE_AND_ASSIGN("&=");
 
         private final String value;
 

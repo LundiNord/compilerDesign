@@ -1,7 +1,6 @@
 package edu.kit.kastel.vads.compiler.ir.node;
 
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
-import edu.kit.kastel.vads.compiler.ir.IfNode;
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfo;
 import edu.kit.kastel.vads.compiler.ir.util.DebugInfoHelper;
 import org.jspecify.annotations.Nullable;
@@ -11,7 +10,7 @@ import java.util.List;
 
 /// The base class for all nodes.
 public abstract sealed class Node
-    permits IfNode, BinaryOperationNode, ConstIntNode, PhiNode, RegionNode, ReturnNode, StartNode {
+    permits BinaryOperationNode, ConstIntNode, EndNode, IfNode, PhiNode, RegionNode, ReturnNode, StartNode, WhileNode {
     private final List<Node> predecessors = new ArrayList<>();
     private final List<Node> successors = new ArrayList<>();
     private final DebugInfo debugInfo;
@@ -41,7 +40,7 @@ public abstract sealed class Node
     }
 
     public final void addPredecessor(Node node) {
-        this.predecessors.add(node);;
+        this.predecessors.add(node);
     }
     public final void addSuccessor(Node node) {
         this.successors.add(node);

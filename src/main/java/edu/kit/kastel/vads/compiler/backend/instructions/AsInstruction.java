@@ -30,19 +30,3 @@ public abstract class AsInstruction {
     public abstract void changeSource(Register reg);
 
 }
-
-
-
-
-
-
-
-//    @Nullable
-//    private Node ssaNode;
-//    @Nullable
-//    public Node getSsaNode() {
-//        return ssaNode;
-//    }
-//    public void setSsaNode(Node ssaNode) {
-//        this.ssaNode = ssaNode;
-//    }

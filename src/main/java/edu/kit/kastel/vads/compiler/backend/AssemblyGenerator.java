@@ -1,6 +1,7 @@
 package edu.kit.kastel.vads.compiler.backend;
 
 import edu.kit.kastel.vads.compiler.backend.instructions.Addl;
+import edu.kit.kastel.vads.compiler.backend.instructions.And;
 import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
 import edu.kit.kastel.vads.compiler.backend.instructions.CmplConst;
 import edu.kit.kastel.vads.compiler.backend.instructions.Div;
@@ -10,13 +11,19 @@ import edu.kit.kastel.vads.compiler.backend.instructions.Mod;
 import edu.kit.kastel.vads.compiler.backend.instructions.Movel;
 import edu.kit.kastel.vads.compiler.backend.instructions.MovlConst;
 import edu.kit.kastel.vads.compiler.backend.instructions.Mul;
+import edu.kit.kastel.vads.compiler.backend.instructions.Or;
 import edu.kit.kastel.vads.compiler.backend.instructions.Sal;
+import edu.kit.kastel.vads.compiler.backend.instructions.Sall;
+import edu.kit.kastel.vads.compiler.backend.instructions.Sarl;
 import edu.kit.kastel.vads.compiler.backend.instructions.Subl;
+import edu.kit.kastel.vads.compiler.backend.instructions.Xor;
 import edu.kit.kastel.vads.compiler.backend.regalloc.InfiniteRegister;
 import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import edu.kit.kastel.vads.compiler.backend.regalloc.RegisterAlloc;
 import edu.kit.kastel.vads.compiler.backend.regalloc.StandardRegister;
-import edu.kit.kastel.vads.compiler.ir.IfNode;
+import edu.kit.kastel.vads.compiler.ir.node.BitwiseCompNode;
+import edu.kit.kastel.vads.compiler.ir.node.EndNode;
+import edu.kit.kastel.vads.compiler.ir.node.IfNode;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
 import edu.kit.kastel.vads.compiler.ir.node.AddNode;
 import edu.kit.kastel.vads.compiler.ir.node.ConstIntNode;
@@ -26,8 +33,10 @@ import edu.kit.kastel.vads.compiler.ir.node.MulNode;
 import edu.kit.kastel.vads.compiler.ir.node.Node;
 import edu.kit.kastel.vads.compiler.ir.node.PhiNode;
 import edu.kit.kastel.vads.compiler.ir.node.ReturnNode;
+import edu.kit.kastel.vads.compiler.ir.node.ShiftNode;
 import edu.kit.kastel.vads.compiler.ir.node.StartNode;
 import edu.kit.kastel.vads.compiler.ir.node.SubNode;
+import edu.kit.kastel.vads.compiler.ir.node.WhileNode;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -110,20 +119,16 @@ public class AssemblyGenerator {
      * @return Register/Variable where the result value is stored.
      */
     @Nullable
-    private Register maxMunch(Node node) {      //ToDo: do strength reduction
+    private Register maxMunch(Node node) {
         Node alreadyVisited = visited.get(node);
         if (alreadyVisited != null) {
             return alreadyVisited.getDestination();  //Could be changes to only store dest register
         } else {
             visited.put(node, node);
         }
-        switch (node) {
-            case ModNode mod -> {
-                return modMaxMunch(mod);
-            }
-            case DivNode div -> {
-                return divMaxMunch(div);
-            }
+        return switch (node) {
+            case ModNode mod -> modMaxMunch(mod);
+            case DivNode div -> divMaxMunch(div);
             case ConstIntNode constIntNode -> {
                 Register dest = getFreshRegister();
                 MovlConst movlConst = new MovlConst(constIntNode.value(), dest);
@@ -134,7 +139,7 @@ public class AssemblyGenerator {
                 if (sideEffect != null) {
                     maxMunch(sideEffect);
                 }
-                return dest;
+                yield dest;
             }
             case SubNode sub -> {
                 Node successor1 = sub.predecessors().get(0);
@@ -150,7 +155,7 @@ public class AssemblyGenerator {
                 Subl subl = new Subl(succ2, dest);
                 assemblyCode.add(subl);
                 node.setDestination(dest);
-                return dest;
+                yield dest;
             }
             case AddNode add -> {
                 Node successor1 = add.predecessors().get(0);
@@ -166,11 +171,9 @@ public class AssemblyGenerator {
                 Addl addl = new Addl(succ2, dest);
                 assemblyCode.add(addl);
                 node.setDestination(dest);
-                return dest;
+                yield dest;
             }
-            case MulNode mul -> {
-                return mulMaxMunch(mul);
-            }
+            case MulNode mul -> mulMaxMunch(mul);
             case ReturnNode returnNode -> {
                 Register succ = null;
                 for (Node predecessor : returnNode.predecessors()) {
@@ -178,13 +181,15 @@ public class AssemblyGenerator {
 //                        maxMunch(predecessor); //calculate value and don't store it
 //                        continue;
 //                    }
-                    succ = maxMunch(predecessor);
+                    if (predecessor != null) {
+                        succ = maxMunch(predecessor);
+                    }
                 }
                 assert succ != null;
                 //succ = succ.replace("d", "");
                 //return value should be in %rax
                 assemblyCode.add(new Movel(succ, new StandardRegister("%eax", false)));
-                return null;
+                yield null;
             }
 //            case ProjNode projNode -> {
 //                if (projNode.info().equals("RESULT")) {
@@ -204,33 +209,22 @@ public class AssemblyGenerator {
 //            }
             case StartNode _ -> {
                 // do nothing, skip line break
-                return null;
+                yield null;
             }
-            case PhiNode phiNode -> {
-                Node successor1 = phiNode.predecessors().get(0);
-                Node successor2 = phiNode.predecessors().get(1);
-                Node condition = phiNode.predecessors().get(2);
-
-                Register succ1 = maxMunch(successor1);
-                Register result = getFreshRegister();
-                assemblyCode.add(new Movel(succ1, result));
-
-                Register condRes = maxMunch(condition);
-                Label skipCond = new Label("skipCond" + nextRegister++);
-                assert condRes != null;
-                assemblyCode.add(new CmplConst(1, condRes));
-                assemblyCode.add(new Jne(skipCond));
-                Register succ2 = maxMunch(successor2);
-                assemblyCode.add(new Movel(succ2, result));
-                assemblyCode.add(skipCond);
-                return result;
-            }
-            case IfNode ifNode -> {
+            case PhiNode phiNode -> phiMaxMunch(phiNode);
+            case IfNode ifNode -> { //ToDo
                 Node successor1 = ifNode.predecessors().getFirst();
-                return maxMunch(successor1);
+                yield maxMunch(successor1);
             }
+            case ShiftNode shift -> shiftMaxMunch(shift);
+            case BitwiseCompNode bitwiseCompNode -> bitwiseCompMaxMunch(bitwiseCompNode);
+            case EndNode endNode -> {
+                maxMunch(endNode.predecessor(0));
+                yield null;
+            }
+            case WhileNode whileNode -> whileMaxMunch(whileNode);
             default -> throw new IllegalStateException("Unexpected value: " + node);
-        }
+        };
     }
 
     private Register mulMaxMunch(MulNode mul) {
@@ -275,11 +269,11 @@ public class AssemblyGenerator {
         }   //ToDo: more strength reductions
         return null;
     }
-
     boolean isPowerOfTwo(int n) {
         //https://www.baeldung.com/java-check-number-power-of-two
         return (n != 0) && ((n & (n - 1)) == 0);
     }
+
     private Register divMaxMunch(DivNode div) {
         Node successor1 = div.predecessors().get(0);    //oberer -> dividend
         Node successor2 = div.predecessors().get(1);    //unterer -> divisor
@@ -312,7 +306,6 @@ public class AssemblyGenerator {
         div.setDestination(destination);
         return destination;
     }
-
     private Register modMaxMunch(ModNode mod) {
         Node successor1 = mod.predecessors().get(0);    //oberer -> dividend
         Node successor2 = mod.predecessors().get(1);    //unterer -> divisor
@@ -345,6 +338,69 @@ public class AssemblyGenerator {
         assemblyCode.add(new Movel(dest, destination));
         mod.setDestination(destination);
         return destination;
+    }
+    private Register phiMaxMunch(PhiNode phiNode) {
+        Node successor1 = phiNode.predecessors().get(0);
+        Node successor2 = phiNode.predecessors().get(1);
+        Node condition = phiNode.predecessors().get(2);
+
+        Register succ1 = maxMunch(successor1);
+        Register result = getFreshRegister();
+        assemblyCode.add(new Movel(succ1, result));
+
+        Register condRes = maxMunch(condition);
+        Label skipCond = new Label("skipCond" + nextRegister++);
+        assert condRes != null;
+        assemblyCode.add(new CmplConst(1, condRes));
+        assemblyCode.add(new Jne(skipCond));
+        Register succ2 = maxMunch(successor2);
+        assemblyCode.add(new Movel(succ2, result));
+        assemblyCode.add(skipCond);
+        phiNode.setDestination(result);
+        return result;
+    }
+    private Register shiftMaxMunch(ShiftNode shift) {
+        Node valueNode = shift.predecessors().get(0);   //Value to be shifted
+        Node amountNode = shift.predecessors().get(1);  //Shift amount
+        Register valueReg = maxMunch(valueNode);
+        Register amountReg = maxMunch(amountNode);
+        Register cl = new StandardRegister("%ecx", false);
+        assemblyCode.add(new Movel(amountReg, cl));     //move shift amount into cl (ecx) register
+        Register dest = getFreshRegister();
+        assemblyCode.add(new Movel(valueReg, dest));
+
+        assert amountReg != null;
+        if (shift.getShift() == ShiftNode.Shift.LEFT) {
+            assemblyCode.add(new Sall(dest));
+        } else {  //ShiftNode.Shift.RIGHT
+            assemblyCode.add(new Sarl(dest));
+        }
+
+        shift.setDestination(dest);
+        return dest;
+    }
+    private Register bitwiseCompMaxMunch(BitwiseCompNode bitwiseComp) {
+        Node successor1 = bitwiseComp.predecessors().get(0);
+        Node successor2 = bitwiseComp.predecessors().get(1);
+        Register succ1 = maxMunch(successor1);
+        Register succ2 = maxMunch(successor2);
+        Register dest = getFreshRegister();
+        assemblyCode.add(new Movel(succ1, dest));
+        assert succ2 != null;
+
+        switch (bitwiseComp.getType()) {
+            case XOR -> assemblyCode.add(new Xor(dest, succ2));
+            case AND -> assemblyCode.add(new And(dest, succ2));
+            case OR -> assemblyCode.add(new Or(dest, succ2));
+            default -> throw new IllegalStateException("Unexpected value: " + bitwiseComp.getType());
+        }
+
+        bitwiseComp.setDestination(dest);
+        return dest;
+    }
+    private Register whileMaxMunch(WhileNode whileNode) {
+        //ToDo
+        return null;
     }
 
     private Register getFreshRegister() {

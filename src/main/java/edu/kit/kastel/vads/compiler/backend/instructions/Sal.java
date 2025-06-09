@@ -26,12 +26,12 @@ public class Sal extends AsInstruction {
     public Register getDestination() {
         return destination;
     }
-   @Nullable
+    @Nullable
     public Register getSource() {
         return destination;
     }
     @Override
     public void changeSource(Register reg) {
-        //do nothing
+        throw new UnsupportedOperationException("Sal does not have a source register " + reg);
     }
 }

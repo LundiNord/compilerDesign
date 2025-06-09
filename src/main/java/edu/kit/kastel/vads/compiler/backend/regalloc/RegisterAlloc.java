@@ -14,7 +14,7 @@ public class RegisterAlloc {
     private final InterferenceGraph interferenceGraph;
     private static final Register[] REGISTERS = {
 //           new StandardRegister("%ebx", false),
-           new StandardRegister("%ecx", false),
+//           new StandardRegister("%ecx", false),
            new StandardRegister("%esi", false),
            new StandardRegister("%edi", false),
            new StandardRegister("%r8d", false),

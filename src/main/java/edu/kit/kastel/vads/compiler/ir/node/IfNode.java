@@ -1,6 +1,4 @@
-package edu.kit.kastel.vads.compiler.ir;
-
-import edu.kit.kastel.vads.compiler.ir.node.Node;
+package edu.kit.kastel.vads.compiler.ir.node;
 
 public non-sealed class IfNode extends Node {
 

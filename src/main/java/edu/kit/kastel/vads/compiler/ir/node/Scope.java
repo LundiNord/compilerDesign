@@ -16,7 +16,7 @@ public class Scope {
 
     public void addVariable(Name name, Node value) {
         if (content.put(name, value) != null) {
-            throw new IllegalArgumentException("Variable " + name + " already exists in the scope.");
+            //throw new IllegalArgumentException("Variable " + name + " already exists in the scope.");
         }
     }
 

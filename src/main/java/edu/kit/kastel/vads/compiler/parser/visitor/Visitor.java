@@ -9,11 +9,13 @@ import edu.kit.kastel.vads.compiler.parser.ast.FunctionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.IdentExpressionTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LValueIdentTree;
 import edu.kit.kastel.vads.compiler.parser.ast.LiteralTree;
+import edu.kit.kastel.vads.compiler.parser.ast.LoopCtrlTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NameTree;
 import edu.kit.kastel.vads.compiler.parser.ast.NegateTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ProgramTree;
 import edu.kit.kastel.vads.compiler.parser.ast.ReturnTree;
 import edu.kit.kastel.vads.compiler.parser.ast.TypeTree;
+import edu.kit.kastel.vads.compiler.parser.ast.WhileTree;
 
 public interface Visitor<T, R> {
 
@@ -44,4 +46,8 @@ public interface Visitor<T, R> {
     R visit(TypeTree typeTree, T data);
 
     R visit(ConditionalJumpTree conditionalJumpTree, T data);
+
+    R visit(WhileTree whileTree, T data);
+
+    R visit(LoopCtrlTree loopCtrlTree, T data);
 }
