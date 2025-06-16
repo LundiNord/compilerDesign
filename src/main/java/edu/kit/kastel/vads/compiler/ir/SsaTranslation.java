@@ -160,6 +160,8 @@ public class SsaTranslation {
                 case LESS_THAN_OR_EQUAL -> new CompNode(lhs, rhs, CompNode.CompType.LESS_THAN_OR_EQUALS);
                 case GREATER_THAN -> new CompNode(lhs, rhs, CompNode.CompType.GREATER_THAN);
                 case GREATER_THAN_OR_EQUAL -> new CompNode(lhs, rhs, CompNode.CompType.GREATER_THAN_OR_EQUALS);
+                case EQUALS -> new CompNode(lhs, rhs, CompNode.CompType.EQUALS);
+                case NOT_EQUALS -> new CompNode(lhs, rhs, CompNode.CompType.NOT_EQUALS);
                 default ->
                     throw new IllegalArgumentException("not a binary expression operator " + binaryOperationTree.operatorType());
             };

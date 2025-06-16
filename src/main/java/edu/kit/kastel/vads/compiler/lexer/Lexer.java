@@ -55,8 +55,20 @@ public class Lexer {
             case '*' -> singleOrAssign(OperatorType.MUL, OperatorType.ASSIGN_MUL);
             case '/' -> singleOrAssign(OperatorType.DIV, OperatorType.ASSIGN_DIV);
             case '%' -> singleOrAssign(OperatorType.MOD, OperatorType.ASSIGN_MOD);
-            case '=' -> new Operator(OperatorType.ASSIGN, buildSpan(1));
-            case '!' -> new Operator(OperatorType.LOGICAL_NOT, buildSpan(1));
+            case '=' -> {
+                if (hasMore(1) && peek(1) == '=') {
+                    this.pos++;
+                    yield new Operator(OperatorType.EQUALS, buildSpan(1));
+                }
+                yield new Operator(OperatorType.ASSIGN, buildSpan(1));
+            }
+            case '!' -> {
+                if (hasMore(1) && peek(1) == '=') {
+                    this.pos++;
+                    yield new Operator(OperatorType.NOT_EQUALS, buildSpan(1));
+                }
+                yield new Operator(OperatorType.LOGICAL_NOT, buildSpan(1));
+            }
             case '~' -> new Operator(OperatorType.BITWISE_NOT, buildSpan(1));
             case '^' -> singleOrAssign(OperatorType.BITWISE_EXCLUSIVE_OR, OperatorType.BITWISE_EXCLUSIVE_OR_ASSIGN);
             case '|' -> {

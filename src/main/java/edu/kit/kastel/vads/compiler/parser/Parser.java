@@ -87,6 +87,14 @@ public class Parser {
         } else if (this.tokenSource.peek().isKeyword(KeywordType.IF)) {
             statement = parseIf();
             return statement;
+        }else if (this.tokenSource.peek().isKeyword(KeywordType.ELSE)) {
+            this.tokenSource.consume();
+            if (this.tokenSource.peek().isKeyword(KeywordType.IF)) {    //else if
+                statement = parseIf();
+                return statement;
+            } else {        //just else
+                return parseBlock();        //FixMe
+            }
         } else if (this.tokenSource.peek().isKeyword(KeywordType.WHILE)) {
             statement = parseWhile();
             return statement;
@@ -103,7 +111,8 @@ public class Parser {
             return statement;
         } else if (this.tokenSource.peek().isSeparator(SeparatorType.BRACE_OPEN)) {
             BlockTree body = parseBlock();
-            return null;    //ToDo
+
+            return body;    //ToDo wrap in block node
         } else {
             statement = parseSimple();
         }

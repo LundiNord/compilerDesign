@@ -10,7 +10,8 @@ import java.util.List;
 
 /// The base class for all nodes.
 public abstract sealed class Node
-    permits BinaryOperationNode, ConstIntNode, EndNode, IfNode, PhiNode, RegionNode, ReturnNode, StartNode, WhileNode {
+    permits BinaryOperationNode, BlockNode, ConstIntNode, EndNode, IfNode, PhiNode, RegionNode, ReturnNode, StartNode,
+    WhileNode {
     private final List<Node> predecessors = new ArrayList<>();
     private final List<Node> successors = new ArrayList<>();
     private final DebugInfo debugInfo;

@@ -3,8 +3,14 @@ package edu.kit.kastel.vads.compiler.backend;
 import edu.kit.kastel.vads.compiler.backend.instructions.Addl;
 import edu.kit.kastel.vads.compiler.backend.instructions.And;
 import edu.kit.kastel.vads.compiler.backend.instructions.AsInstruction;
+import edu.kit.kastel.vads.compiler.backend.instructions.Cmpl;
 import edu.kit.kastel.vads.compiler.backend.instructions.CmplConst;
 import edu.kit.kastel.vads.compiler.backend.instructions.Div;
+import edu.kit.kastel.vads.compiler.backend.instructions.Je;
+import edu.kit.kastel.vads.compiler.backend.instructions.Jg;
+import edu.kit.kastel.vads.compiler.backend.instructions.Jge;
+import edu.kit.kastel.vads.compiler.backend.instructions.Jl;
+import edu.kit.kastel.vads.compiler.backend.instructions.Jle;
 import edu.kit.kastel.vads.compiler.backend.instructions.Jne;
 import edu.kit.kastel.vads.compiler.backend.instructions.Label;
 import edu.kit.kastel.vads.compiler.backend.instructions.Mod;
@@ -22,6 +28,7 @@ import edu.kit.kastel.vads.compiler.backend.regalloc.Register;
 import edu.kit.kastel.vads.compiler.backend.regalloc.RegisterAlloc;
 import edu.kit.kastel.vads.compiler.backend.regalloc.StandardRegister;
 import edu.kit.kastel.vads.compiler.ir.node.BitwiseCompNode;
+import edu.kit.kastel.vads.compiler.ir.node.CompNode;
 import edu.kit.kastel.vads.compiler.ir.node.EndNode;
 import edu.kit.kastel.vads.compiler.ir.node.IfNode;
 import edu.kit.kastel.vads.compiler.ir.IrGraph;
@@ -223,6 +230,7 @@ public class AssemblyGenerator {
                 yield null;
             }
             case WhileNode whileNode -> whileMaxMunch(whileNode);
+            case CompNode compNode -> compMaxMunch(compNode, null);
             default -> throw new IllegalStateException("Unexpected value: " + node);
         };
     }
@@ -348,16 +356,53 @@ public class AssemblyGenerator {
         Register result = getFreshRegister();
         assemblyCode.add(new Movel(succ1, result));
 
-        Register condRes = maxMunch(condition);
-        Label skipCond = new Label("skipCond" + nextRegister++);
-        assert condRes != null;
-        assemblyCode.add(new CmplConst(1, condRes));
-        assemblyCode.add(new Jne(skipCond));
+        Label skipLabel = new Label("skipCond" + nextRegister++);
+        compMaxMunch((CompNode) condition.predecessors().getFirst(), skipLabel);
+
         Register succ2 = maxMunch(successor2);
         assemblyCode.add(new Movel(succ2, result));
-        assemblyCode.add(skipCond);
+        assemblyCode.add(skipLabel);
+
         phiNode.setDestination(result);
         return result;
+    }
+    @Nullable
+    private Register compMaxMunch(CompNode compNode, Label skipLabel) {
+        Node successor1 = compNode.predecessors().get(0);
+        Node successor2 = compNode.predecessors().get(1);
+        Register succ1 = maxMunch(successor1);      //FixMe: Problem with reg alloc
+        Register succ2 = maxMunch(successor2);
+        assert succ1 != null;
+        assert succ2 != null;
+
+        switch (compNode.getType()) {
+            case EQUALS -> {
+                assemblyCode.add(new Cmpl(succ1, succ2));
+                assemblyCode.add(new Jne(skipLabel));
+            }
+            case NOT_EQUALS -> {
+                assemblyCode.add(new Cmpl(succ1, succ2));
+                assemblyCode.add(new Je(skipLabel));
+            }
+            case LESS_THAN -> {
+                assemblyCode.add(new Cmpl(succ1, succ2));
+                assemblyCode.add(new Jl(skipLabel));
+            }
+            case LESS_THAN_OR_EQUALS -> {
+                assemblyCode.add(new Cmpl(succ1, succ2));
+                assemblyCode.add(new Jle(skipLabel));
+            }
+            case GREATER_THAN -> {
+                assemblyCode.add(new Cmpl(succ1, succ2));
+                assemblyCode.add(new Jg(skipLabel));
+            }
+            case GREATER_THAN_OR_EQUALS -> {
+                assemblyCode.add(new Cmpl(succ1, succ2));
+                assemblyCode.add(new Jge(skipLabel));
+            }
+            default -> throw new IllegalStateException("Unexpected value: " + compNode.getType());
+        }
+        return null;
     }
     private Register shiftMaxMunch(ShiftNode shift) {
         Node valueNode = shift.predecessors().get(0);   //Value to be shifted
@@ -398,6 +443,7 @@ public class AssemblyGenerator {
         bitwiseComp.setDestination(dest);
         return dest;
     }
+    @Nullable
     private Register whileMaxMunch(WhileNode whileNode) {
         //ToDo
         return null;
